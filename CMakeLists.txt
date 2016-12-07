@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+find_package(stage REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -117,6 +119,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${STAGE_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -131,6 +134,7 @@ include_directories(
 
 ## Declare a C++ executable
 # add_executable(lidar_dcnn_node src/lidar_dcnn_node.cpp)
+add_executable(create_scans src/create_scans.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -140,6 +144,10 @@ include_directories(
 # target_link_libraries(lidar_dcnn_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(create_scans
+    ${catkin_LIBRARIES}
+    ${STAGE_LIBRARIES}
+)
 
 #############
 ## Install ##

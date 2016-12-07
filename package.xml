@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <package>
   <name>lidar_dcnn</name>
-  <version>0.0.0</version>
-  <description>The lidar_dcnn package</description>
+  <version>0.0.1</version>
+  <description>A ROS package for training a deep convolutional neural network to detect features in LIDAR scans.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="snowmower@todo.todo">snowmower</maintainer>
+  <maintainer email="gmattklein@gmail.com">Matthew A. Klein</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>TODO</license>
+  <license>MIT</license>
 
 
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
@@ -45,11 +45,13 @@
   <build_depend>rospy</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>stage</build_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>stage</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

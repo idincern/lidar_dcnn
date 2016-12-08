@@ -31,6 +31,8 @@ SOFTWARE.
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cmath> // for cos and sin
+#include <cstring> // for strcmp()
 #include <unistd.h> // For usleep() - to be removed.
 
 class CreateScans
@@ -43,6 +45,9 @@ private:
     // The models that we're interested in
     std::vector<Stg::ModelRanger *> lasermodels;
     std::vector<Stg::ModelPosition *> positionmodels;
+
+    // The shapes that we detect with the lidar
+    std::vector<Stg::Model *> shapemodels;
 
     //a structure representing a robot inthe simulator
     struct StageRobot
@@ -69,9 +74,26 @@ private:
     }
 
 public:
+    // A friend function of block that can alter the private `pts` member
+    // variable. This is used to change verticies of the block.
+    void reassign_verticies(Stg::Block& block, std::vector<double>& x,
+                                   std::vector<double>& y);
+
+    /* move_shape() moves the shape model to an x,y position with rotation equal
+       to a. a should be equal to zero when the shape's vertical direction points
+       in the same direction as r. The parameter rot then rotates the shape out
+       of line with r. All angles are in radians.
+    */
+    void move_shape(Stg::Model* mod, double r, double theta, double rot);
+
     // Subscribe to models of interest.  Currently, we find and subscribe
     // to the first 'laser' model and the first 'position' model.  Returns
     // 0 on success (both models subscribed), -1 otherwise.
+
+    // Cycles through shapes, location, rotation, etc, and calls UpdateWorld(),
+    // which triggers WorldCallback(), which writes scans to disk.
+    void generate_scans();
+
     int SubscribeModels();
 
     // Our callback
@@ -87,6 +109,59 @@ public:
 };
 
 void
+CreateScans::reassign_verticies(Stg::Block& block, std::vector<double>& x,
+                                std::vector<double>& y)
+{
+    // Do nothing.
+}
+
+/* move_shape() moves the shape model to an x,y position with rotation equal to
+   a. a should be equal to zero when the shape's vertical direction points in
+   the same direction as r. The parameter rot then rotates the shape out of line
+   with r. All angles are in radians.
+ */
+void
+CreateScans::move_shape(Stg::Model* mod, double r, double theta, double rot)
+{
+    Stg::Pose pose;
+    pose.x = r * cos(theta);
+    pose.y = r * sin(theta);
+    pose.z = 0;
+    // shape is originially in y-direction, rotate -90 degrees first
+    pose.a = -M_PI/2 + theta + rot;
+    mod->SetPose(pose);
+}
+
+void
+CreateScans::generate_scans()
+{
+    double r;
+    double rMin = 1;
+    double rMax = 75;
+    double rNum = 10;
+    double theta;
+    double thetaMin = -M_PI_2;
+    double thetaMax = M_PI_2;
+    double thetaNum = 10;
+    double rot;
+    double rotMin = -M_PI;
+    double rotMax = M_PI;
+    double rotNum = 10;
+
+    for (int i = 0; i < rNum; i++) {
+        for (int j = 0; j < thetaNum   ; j++) {
+            for (int k = 0; k < rotNum; k++) {
+                r = rMin + (i/(rNum-1))*(rMax-rMin);
+                theta = thetaMin + (i/(thetaNum-1))*(thetaMax-thetaMin);
+                rot = rotMin + (i/(rotNum-1))*(rotMax-rotMin);
+                this->move_shape(this->shapemodels[0], r, theta, rot);
+                this->UpdateWorld();
+            }
+        }
+    }
+}
+
+void
 CreateScans::ghfunc(Stg::Model* mod, CreateScans* node)
 {
     if (dynamic_cast<Stg::ModelRanger *>(mod))
@@ -94,6 +169,9 @@ CreateScans::ghfunc(Stg::Model* mod, CreateScans* node)
     if (dynamic_cast<Stg::ModelPosition *>(mod)) {
         Stg::ModelPosition * p = dynamic_cast<Stg::ModelPosition *>(mod);
         node->positionmodels.push_back(p);
+    }
+    if (strcmp(mod->Token(),"shape") == 0 ) {
+        node->shapemodels.push_back(dynamic_cast<Stg::Model *>(mod));
     }
 }
 
@@ -116,12 +194,12 @@ CreateScans::SubscribeModels()
             {
                 new_robot->lasermodels.push_back(this->lasermodels[s]);
                 this->lasermodels[s]->Subscribe();
+                std::cout << "Laser added to robot" << std::endl;
             }
         }
 
         this->robotmodels_.push_back(new_robot);
     }
-
     return(0);
 }
 
@@ -135,8 +213,6 @@ void
 CreateScans::WorldCallback()
 {
     std::cout << "WorldCallback() ran!" << std::endl;
-    std::cout << "Num of robot models: " <<this->robotmodels_.size()
-              << std::endl;
     //loop on the robot models
     for (size_t r = 0; r < this->robotmodels_.size(); ++r)
     {
@@ -220,13 +296,7 @@ int main(int argc, char *argv[])
 
   // New in Stage 4.1.1: must Start() the world.
   cs.world->Start();
-
-  for (int i=0; i<3; i++)
-  {
-      // Run the UpdateWorld() and sleep
-      cs.UpdateWorld();
-      usleep(1000*1000);
-  }
+  cs.generate_scans();
 
   return 0;
 }

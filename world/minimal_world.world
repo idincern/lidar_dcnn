@@ -1,6 +1,33 @@
 # Define a ranger (lidar), and a position (robot) model.
 # Place the robot with the lidar at the origin facing in the x direction
 
+include "models/A.inc"
+include "models/B.inc"
+include "models/C.inc"
+include "models/D.inc"
+include "models/E.inc"
+include "models/F.inc"
+include "models/G.inc"
+include "models/H.inc"
+include "models/I.inc"
+include "models/J.inc"
+include "models/K.inc"
+include "models/L.inc"
+include "models/M.inc"
+include "models/N.inc"
+include "models/O.inc"
+include "models/P.inc"
+include "models/Q.inc"
+include "models/R.inc"
+include "models/S.inc"
+include "models/T.inc"
+include "models/U.inc"
+include "models/V.inc"
+include "models/W.inc"
+include "models/X.inc"
+include "models/Y.inc"
+include "models/Z.inc"
+
 define shape model
 (
   size [1.0 1.0 1.0]
@@ -76,8 +103,29 @@ robot
   pose [0 0 0 0]
 )
 
-shape
-(
-  name "shape"
-  pose [3 0 0 0]
-)
+A ( pose [ -5 0 0 0] )
+B ( pose [ -5 0 0 0] )
+C ( pose [ -5 0 0 0] )
+D ( pose [ -5 0 0 0] )
+E ( pose [ -5 0 0 0] )
+F ( pose [ -5 0 0 0] )
+G ( pose [ -5 0 0 0] )
+H ( pose [ -5 0 0 0] )
+I ( pose [ -5 0 0 0] )
+J ( pose [ -5 0 0 0] )
+K ( pose [ -5 0 0 0] )
+L ( pose [ -5 0 0 0] )
+M ( pose [ -5 0 0 0] )
+N ( pose [ -5 0 0 0] )
+O ( pose [ -5 0 0 0] )
+P ( pose [ -5 0 0 0] )
+Q ( pose [ -5 0 0 0] )
+R ( pose [ -5 0 0 0] )
+S ( pose [ -5 0 0 0] )
+T ( pose [ -5 0 0 0] )
+U ( pose [ -5 0 0 0] )
+V ( pose [ -5 0 0 0] )
+W ( pose [ -5 0 0 0] )
+X ( pose [ -5 0 0 0] )
+Y ( pose [ -5 0 0 0] )
+Z ( pose [ -5 0 0 0] )

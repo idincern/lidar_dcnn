@@ -76,7 +76,7 @@ private:
 public:
     // A friend function of block that can alter the private `pts` member
     // variable. This is used to change verticies of the block.
-    void reassign_verticies(Stg::Block& block, std::vector<double>& x,
+    void reassign_verticies(Stg::Model* mod, std::vector<double>& x,
                                    std::vector<double>& y);
 
     /* move_shape() moves the shape model to an x,y position with rotation equal
@@ -109,7 +109,7 @@ public:
 };
 
 void
-CreateScans::reassign_verticies(Stg::Block& block, std::vector<double>& x,
+CreateScans::reassign_verticies(Stg::Model* mod, std::vector<double>& x,
                                 std::vector<double>& y)
 {
     // Do nothing.
@@ -135,29 +135,72 @@ CreateScans::move_shape(Stg::Model* mod, double r, double theta, double rot)
 void
 CreateScans::generate_scans()
 {
-    double r;
-    double rMin = 1;
-    double rMax = 75;
-    double rNum = 10;
-    double theta;
+    // Parameter sweep
+    int shape; // shape
+    int shapeMin = 0;
+    int shapeMax = this->shapemodels.size()-1;
+    int shapeNum = this->shapemodels.size();
+    double r; // distance from lidar
+    double rMin = 10;
+    double rMax = 60;
+    int rNum = 25;
+    double theta; // angle from lidar (0 = straight ahead)
     double thetaMin = -M_PI_2;
     double thetaMax = M_PI_2;
-    double thetaNum = 10;
-    double rot;
+    int thetaNum = 25;
+    double rot; // shape's rotation from r (0 lies along r)
     double rotMin = -M_PI;
     double rotMax = M_PI;
-    double rotNum = 10;
+    int rotNum = 25;
+    double size; // multiplier of original size
+    double sizeMin = 3;
+    double sizeMax = 7;
+    int sizeNum = 4;
 
-    for (int i = 0; i < rNum; i++) {
-        for (int j = 0; j < thetaNum   ; j++) {
-            for (int k = 0; k < rotNum; k++) {
-                r = rMin + (i/(rNum-1))*(rMax-rMin);
-                theta = thetaMin + (i/(thetaNum-1))*(thetaMax-thetaMin);
-                rot = rotMin + (i/(rotNum-1))*(rotMax-rotMin);
-                this->move_shape(this->shapemodels[0], r, theta, rot);
-                this->UpdateWorld();
+    // Display the number of scans recorded
+    int num_scans = shapeNum*rNum*thetaNum*rotNum*sizeNum;
+    std::cout << "Number of Scans : " << num_scans << std::endl;
+
+    // Cycle through the shapes
+    for (int m = 0; m < shapeNum; m++) {
+        // Read shape .csv file and set verticies.
+
+        // Get original shape size
+        Stg::Geom geom = this->shapemodels[m]->GetGeom();
+        double xOrig = geom.size.x;
+        double yOrig = geom.size.y;
+        // Cycle through the sizes
+        for (int l = 0; l < sizeNum; l++) {
+            size =(sizeMin + (l/(double)(sizeNum-1))*(sizeMax-sizeMin));
+            geom.size.x = xOrig * size;
+            geom.size.y = yOrig * size;
+            // And update the size
+            this->shapemodels[0]->SetGeom(geom);
+            // Cycle through the radii
+            for (int i = 0; i < rNum; i++) {
+                r = rMin + (i/(double)(rNum-1))*(rMax-rMin);
+                // Cycle through the angles
+                for (int j = 0; j < thetaNum ; j++) {
+                    theta = thetaMin
+                        + (j/(double)(thetaNum-1))*(thetaMax-thetaMin);
+                    // Cycle through the rotations
+                    for (int k = 0; k < rotNum; k++) {
+                        rot = rotMin + (k/(double)(rotNum-1))*(rotMax-rotMin);
+
+                        // Then move the model
+                        this->move_shape(this->shapemodels[m], r, theta, rot);
+                        // write the scan header to the file
+                        // block type, size, distance, angle, rotation,
+                        // noise level (always zero here),
+                        this->scanfile << m << ", " << size << ", " << r << ", " << theta << ", " << rot << ", " << 0 << ", ";
+                        // and update the world (scan is appended to line)
+                        this->UpdateWorld();
+                    }
+                }
             }
         }
+        // Move the shape back behind the lidar when we're done with it
+        this->move_shape(this->shapemodels[m], -5, 0, 0);
     }
 }
 
@@ -170,7 +213,7 @@ CreateScans::ghfunc(Stg::Model* mod, CreateScans* node)
         Stg::ModelPosition * p = dynamic_cast<Stg::ModelPosition *>(mod);
         node->positionmodels.push_back(p);
     }
-    if (strcmp(mod->Token(),"shape") == 0 ) {
+    if (strcmp("shape",mod->Token()) <= 0 ) {
         node->shapemodels.push_back(dynamic_cast<Stg::Model *>(mod));
     }
 }
@@ -197,7 +240,6 @@ CreateScans::SubscribeModels()
                 std::cout << "Laser added to robot" << std::endl;
             }
         }
-
         this->robotmodels_.push_back(new_robot);
     }
     return(0);
@@ -212,7 +254,6 @@ CreateScans::UpdateWorld()
 void
 CreateScans::WorldCallback()
 {
-    std::cout << "WorldCallback() ran!" << std::endl;
     //loop on the robot models
     for (size_t r = 0; r < this->robotmodels_.size(); ++r)
     {
@@ -230,6 +271,7 @@ CreateScans::WorldCallback()
 
             if( sensor.ranges.size() )
             {
+                /* DEBUG info
                 // Print relavent ranger info to console
                 std::cout << "min angle: " << -sensor.fov/2.0 << std::endl;
                 std::cout << "max angle: " << +sensor.fov/2.0 << std::endl;
@@ -237,11 +279,14 @@ CreateScans::WorldCallback()
                     sensor.fov/(double)(sensor.sample_count-1) << std::endl;
                 std::cout << "min ramge: " << -sensor.range.min << std::endl;
                 std::cout << "max ramge: " << -sensor.range.max << std::endl;
+                */
                 // Pirnt ranges to console
                 for(unsigned int i = 0; i < sensor.ranges.size(); i++)
                 {
+                    /* DEBUG info
                     std::cout << "range " << i << ": " << sensor.ranges[i]
                               << std::endl;
+                    */
                     // Write each range to file
                     this->scanfile << sensor.ranges[i];
                     // Add a comma between all ranges in a scan except the last
@@ -261,7 +306,7 @@ CreateScans::CreateScans(int argc, char** argv, const char* fname)
     Stg::Init( &argc, &argv );
 
     // create a new World or WorldGui object
-    if(true)
+    if(false) // don't use a gui (set true if a gui is desired)
         this->world = new Stg::WorldGui(600, 400, "Stage (Create Scans)");
     else
         this->world = new Stg::World();
@@ -273,13 +318,18 @@ CreateScans::CreateScans(int argc, char** argv, const char* fname)
     // being invoked before we're ready.
     this->world->AddUpdateCallback((Stg::world_callback_t)s_update, this);
     this->world->ForEachDescendant((Stg::model_callback_t)ghfunc, this);
-
+    std::cout << "shapemodels = " << this->shapemodels.size() << std::endl; //DEBUG
     // Open up the file to write to
-    scanfile.open("scans.cvs");
+    scanfile.open("scans.csv");
 }
 
 CreateScans::~CreateScans()
 {
+    for (std::vector<StageRobot const*>::iterator r = this->robotmodels_.begin(); r != this->robotmodels_.end(); ++r)
+        delete *r;
+    for (std::vector<Stg::Model*>::iterator r = this->shapemodels.begin(); r != this->shapemodels.end(); ++r)
+        delete *r;
+
     // Close the file
     this->scanfile.close();
 }

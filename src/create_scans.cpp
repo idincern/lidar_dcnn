@@ -35,6 +35,8 @@ SOFTWARE.
 #include <cstring> // for strcmp()
 #include <unistd.h> // For usleep() - to be removed.
 
+#include "cnpy.h" // let's see if it works
+
 class CreateScans
 {
 private:
@@ -61,6 +63,14 @@ private:
 
     std::vector<StageRobot const *> robotmodels_;
 
+    // Current values for shape, size, r, theta, rot. They are set in
+    // generate_scans() and written to file in WorldCallback().
+    int shapeCurr;
+    double sizeCurr;
+    double rCurr;
+    double thetaCurr;
+    double rotCurr;
+
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.
     static void ghfunc(Stg::Model* mod, CreateScans* node);
@@ -79,10 +89,10 @@ public:
     void reassign_verticies(Stg::Model* mod, std::vector<double>& x,
                                    std::vector<double>& y);
 
-    /* move_shape() moves the shape model to an x,y position with rotation equal
-       to a. a should be equal to zero when the shape's vertical direction points
-       in the same direction as r. The parameter rot then rotates the shape out
-       of line with r. All angles are in radians.
+    /* move_shape() moves the shape model to an x,y position with rotation
+       equal to a. a should be equal to zero when the shape's vertical
+       direction points in the same direction as r. The parameter rot then
+       rotates the shape out of line with r. All angles are in radians.
     */
     void move_shape(Stg::Model* mod, double r, double theta, double rot);
 
@@ -141,60 +151,70 @@ CreateScans::generate_scans()
     int shapeMax = this->shapemodels.size()-1;
     int shapeNum = this->shapemodels.size();
     double r; // distance from lidar
-    double rMin = 10;
-    double rMax = 60;
-    int rNum = 25;
+    double rMin = 5;
+    double rMax = 25;
+    int rNum = 5;
     double theta; // angle from lidar (0 = straight ahead)
     double thetaMin = -M_PI_2;
     double thetaMax = M_PI_2;
-    int thetaNum = 25;
+    int thetaNum = 10;
     double rot; // shape's rotation from r (0 lies along r)
     double rotMin = -M_PI;
     double rotMax = M_PI;
-    int rotNum = 25;
+    int rotNum = 5;
     double size; // multiplier of original size
-    double sizeMin = 3;
-    double sizeMax = 7;
-    int sizeNum = 4;
+    double sizeMin = 1;
+    double sizeMax = 5;
+    int sizeNum = 5;
 
     // Display the number of scans recorded
     int num_scans = shapeNum*rNum*thetaNum*rotNum*sizeNum;
     std::cout << "Number of Scans : " << num_scans << std::endl;
-
+    int count = 1;
     // Cycle through the shapes
     for (int m = 0; m < shapeNum; m++) {
         // Read shape .csv file and set verticies.
-
+        this->shapeCurr = m;
         // Get original shape size
         Stg::Geom geom = this->shapemodels[m]->GetGeom();
         double xOrig = geom.size.x;
         double yOrig = geom.size.y;
         // Cycle through the sizes
         for (int l = 0; l < sizeNum; l++) {
-            size =(sizeMin + (l/(double)(sizeNum-1))*(sizeMax-sizeMin));
+            size = (sizeMin + (l/(double)(sizeNum-1))*(sizeMax-sizeMin));
             geom.size.x = xOrig * size;
             geom.size.y = yOrig * size;
+            this->sizeCurr = size;
             // And update the size
             this->shapemodels[0]->SetGeom(geom);
             // Cycle through the radii
             for (int i = 0; i < rNum; i++) {
                 r = rMin + (i/(double)(rNum-1))*(rMax-rMin);
+                this->rCurr = r;
                 // Cycle through the angles
                 for (int j = 0; j < thetaNum ; j++) {
                     theta = thetaMin
                         + (j/(double)(thetaNum-1))*(thetaMax-thetaMin);
+                    this->thetaCurr = theta;
                     // Cycle through the rotations
                     for (int k = 0; k < rotNum; k++) {
                         rot = rotMin + (k/(double)(rotNum-1))*(rotMax-rotMin);
-
+                        this->rotCurr = rot;
                         // Then move the model
                         this->move_shape(this->shapemodels[m], r, theta, rot);
                         // write the scan header to the file
                         // block type, size, distance, angle, rotation,
                         // noise level (always zero here),
-                        this->scanfile << m << ", " << size << ", " << r << ", " << theta << ", " << rot << ", " << 0 << ", ";
+                        this->scanfile << m << "," << size << "," << r << ","
+                                       << theta << "," << rot << "," << 0
+                                       << ",";
                         // and update the world (scan is appended to line)
                         this->UpdateWorld();
+                        // DEBUG
+                        std::cout << "Percent Done = "
+                                  << (double)count/(double)num_scans
+                                  << "%" << std::endl;
+                        count++;
                     }
                 }
             }
@@ -254,6 +274,12 @@ CreateScans::UpdateWorld()
 void
 CreateScans::WorldCallback()
 {
+    double* input = new double[181];
+    double* target = new double[6];
+
+    const unsigned int targetShape[] = {1,6};
+    const unsigned int inputShape[] = {1,181};
+
     //loop on the robot models
     for (size_t r = 0; r < this->robotmodels_.size(); ++r)
     {
@@ -263,7 +289,8 @@ CreateScans::WorldCallback()
         for (size_t s = 0; s < robotmodel->lasermodels.size(); ++s)
         {
             Stg::ModelRanger const* lasermodel = robotmodel->lasermodels[s];
-            const std::vector<Stg::ModelRanger::Sensor>& sensors = lasermodel->GetSensors();
+            const std::vector<Stg::ModelRanger::Sensor>& sensors
+                = lasermodel->GetSensors();
 
             // for now we access only the zeroth sensor of the ranger - good
             // enough for most laser models that have a single beam origin
@@ -271,33 +298,26 @@ CreateScans::WorldCallback()
 
             if( sensor.ranges.size() )
             {
-                /* DEBUG info
-                // Print relavent ranger info to console
-                std::cout << "min angle: " << -sensor.fov/2.0 << std::endl;
-                std::cout << "max angle: " << +sensor.fov/2.0 << std::endl;
-                std::cout << "angle inc: " <<
-                    sensor.fov/(double)(sensor.sample_count-1) << std::endl;
-                std::cout << "min ramge: " << -sensor.range.min << std::endl;
-                std::cout << "max ramge: " << -sensor.range.max << std::endl;
-                */
-                // Pirnt ranges to console
                 for(unsigned int i = 0; i < sensor.ranges.size(); i++)
                 {
-                    /* DEBUG info
-                    std::cout << "range " << i << ": " << sensor.ranges[i]
-                              << std::endl;
-                    */
+                    input[i] = sensor.ranges[i];
                     // Write each range to file
+                    // TODO This should be done in reverse order
                     this->scanfile << sensor.ranges[i];
                     // Add a comma between all ranges in a scan except the last
                     if (i < sensor.ranges.size()-1)
-                        this->scanfile << ", ";
+                        this->scanfile << ",";
                 }
                 // Append a newline at the end of each scan
                 this->scanfile << "\n";
+
+                // Append targets and scans to .npy file
+                // cnpy::npy_save("targets.npy",target,targetShape,2,"a");
+                cnpy::npy_save("scans.npy",input,inputShape,2,"a");
             }
         }
     }
+    delete[] input;
 }
 
 CreateScans::CreateScans(int argc, char** argv, const char* fname)

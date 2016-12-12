@@ -134,7 +134,7 @@ include_directories(
 
 ## Declare a C++ executable
 # add_executable(lidar_dcnn_node src/lidar_dcnn_node.cpp)
-add_executable(create_scans src/create_scans.cpp)
+add_executable(create_scans src/create_scans.cpp src/cnpy.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

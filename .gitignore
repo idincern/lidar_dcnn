@@ -47,3 +47,6 @@ qtcreator-*
 CATKIN_IGNORE
 
 /world/scans.csv
+/data/scans.csv
+/world/scans.npy
+/world/targets.npy

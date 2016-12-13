@@ -35,7 +35,7 @@ SOFTWARE.
 #include <cstring> // for strcmp()
 #include <unistd.h> // For usleep() - to be removed.
 
-#include "cnpy.h" // let's see if it works
+#include "lidar_dcnn/cnpy.h" // let's see if it works
 
 class CreateScans
 {

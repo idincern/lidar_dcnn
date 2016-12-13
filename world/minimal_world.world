@@ -50,7 +50,7 @@ define shape model
 define lidar ranger
 (
   sensor( 			
-    range [ 0.0  30.0 ]
+    range [ 0.0  50.0 ]
     fov 180
    samples 181
   )

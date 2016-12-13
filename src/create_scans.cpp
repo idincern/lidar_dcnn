@@ -153,15 +153,15 @@ CreateScans::generate_scans()
     double r; // distance from lidar
     double rMin = 5;
     double rMax = 25;
-    int rNum = 5;
+    int rNum = 10;
     double theta; // angle from lidar (0 = straight ahead)
     double thetaMin = -M_PI_2;
     double thetaMax = M_PI_2;
-    int thetaNum = 10;
+    int thetaNum = 25;
     double rot; // shape's rotation from r (0 lies along r)
     double rotMin = -M_PI;
     double rotMax = M_PI;
-    int rotNum = 5;
+    int rotNum = 25;
     double size; // multiplier of original size
     double sizeMin = 1;
     double sizeMax = 5;
@@ -211,9 +211,11 @@ CreateScans::generate_scans()
                         // and update the world (scan is appended to line)
                         this->UpdateWorld();
                         // DEBUG
-                        std::cout << "Percent Done = "
-                                  << (double)count/(double)num_scans
-                                  << "%" << std::endl;
+                        if (count%1000 == 0) {
+                            std::cout << "Percent Done = "
+                                      << (double)count/(double)num_scans
+                                      << "%" << std::endl;
+                        }
                         count++;
                     }
                 }
@@ -300,6 +302,8 @@ CreateScans::WorldCallback()
             {
                 for(unsigned int i = 0; i < sensor.ranges.size(); i++)
                 {
+                    // Store ranges in an array. This may not be necessary.
+                    // However, this is how I got npy_save to work.
                     input[i] = sensor.ranges[i];
                     // Write each range to file
                     // TODO This should be done in reverse order
@@ -311,8 +315,21 @@ CreateScans::WorldCallback()
                 // Append a newline at the end of each scan
                 this->scanfile << "\n";
 
+                /* We also want to construct two numpy arrays. The first is a
+                   list of the descriptor of the scan. In order they are shape
+                   type, size multiplier, distance, angle, rotation, and noise
+                   level.
+                */
+                target[0] = this->shapeCurr;
+                target[1] = this->sizeCurr;
+                target[2] = this->rCurr;
+                target[3] = this->thetaCurr;
+                target[4] = this->rotCurr;
+                target[5] = 0;
                 // Append targets and scans to .npy file
-                // cnpy::npy_save("targets.npy",target,targetShape,2,"a");
+                cnpy::npy_save("targets.npy",target,targetShape,2,"a");
+                // The second numpy array is the list of ranges in the scan.
+                // There should be 181 scans, starting at -pi/2 to +pi/2
                 cnpy::npy_save("scans.npy",input,inputShape,2,"a");
             }
         }

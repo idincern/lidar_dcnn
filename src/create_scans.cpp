@@ -151,8 +151,8 @@ CreateScans::generate_scans()
     int shapeMax = this->shapemodels.size()-1;
     int shapeNum = this->shapemodels.size();
     double r; // distance from lidar
-    double rMin = 5;
-    double rMax = 25;
+    double rMin = 15;
+    double rMax = 35;
     int rNum = 10;
     double theta; // angle from lidar (0 = straight ahead)
     double thetaMin = -M_PI_2;
@@ -163,8 +163,8 @@ CreateScans::generate_scans()
     double rotMax = M_PI;
     int rotNum = 25;
     double size; // multiplier of original size
-    double sizeMin = 1;
-    double sizeMax = 5;
+    double sizeMin = 10;
+    double sizeMax = 20;
     int sizeNum = 5;
 
     // Display the number of scans recorded

@@ -48,3 +48,6 @@ CATKIN_IGNORE
 
 *.csv
 *.npy
+GPATH
+GRTAGS
+GTAGS

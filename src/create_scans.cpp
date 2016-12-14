@@ -29,6 +29,7 @@ SOFTWARE.
 #include <stage.hh>
 
 #include <iostream>
+#include <sstream> // for ostringstream
 #include <fstream>
 #include <vector>
 #include <cmath> // for cos and sin
@@ -71,6 +72,10 @@ private:
     double thetaCurr;
     double rotCurr;
 
+    // Filenames to store the npy files.
+    std::ostringstream targ_filename;
+    std::ostringstream scan_filename;
+
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.
     static void ghfunc(Stg::Model* mod, CreateScans* node);
@@ -94,7 +99,8 @@ public:
        direction points in the same direction as r. The parameter rot then
        rotates the shape out of line with r. All angles are in radians.
     */
-    void move_shape(Stg::Model* mod, double r, double theta, double rot);
+    void move_shape(Stg::Model* mod, double r, double theta, double rot,
+                    double z);
 
     // Subscribe to models of interest.  Currently, we find and subscribe
     // to the first 'laser' model and the first 'position' model.  Returns
@@ -131,12 +137,13 @@ CreateScans::reassign_verticies(Stg::Model* mod, std::vector<double>& x,
    with r. All angles are in radians.
  */
 void
-CreateScans::move_shape(Stg::Model* mod, double r, double theta, double rot)
+CreateScans::move_shape(Stg::Model* mod, double r, double theta, double rot,
+                        double z)
 {
     Stg::Pose pose;
     pose.x = r * cos(theta);
     pose.y = r * sin(theta);
-    pose.z = 0;
+    pose.z = z;
     // shape is originially in y-direction, rotate -90 degrees first
     pose.a = -M_PI/2 + theta + rot;
     mod->SetPose(pose);
@@ -155,17 +162,23 @@ CreateScans::generate_scans()
     double rMax = 35;
     int rNum = 10;
     double theta; // angle from lidar (0 = straight ahead)
-    double thetaMin = -M_PI_2;
-    double thetaMax = M_PI_2;
+    double thetaMin = -M_PI_2/2.0;
+    double thetaMax = M_PI_2/2.0;
     int thetaNum = 25;
     double rot; // shape's rotation from r (0 lies along r)
     double rotMin = -M_PI;
     double rotMax = M_PI;
     int rotNum = 25;
     double size; // multiplier of original size
-    double sizeMin = 10;
-    double sizeMax = 20;
-    int sizeNum = 5;
+    double sizeMin = 5;
+    double sizeMax = 10;
+    int sizeNum = 6;
+
+    // Set the filenames for the numpy files.
+    this->targ_filename << "targs_struct_s" << sizeMin << "-" << sizeMax
+                        << "_r" << rMin << "-" << rMax << ".npy";
+    this->scan_filename << "scans_struct_s" << sizeMin << "-" << sizeMax
+                        << "_r" << rMin << "-" << rMax << ".npy";
 
     // Display the number of scans recorded
     int num_scans = shapeNum*rNum*thetaNum*rotNum*sizeNum;
@@ -185,8 +198,10 @@ CreateScans::generate_scans()
             geom.size.x = xOrig * size;
             geom.size.y = yOrig * size;
             this->sizeCurr = size;
+            // Always move to 0,0,0 before setting size
+            this->move_shape(this->shapemodels[m], 0, 0, 0, 0);
             // And update the size
-            this->shapemodels[0]->SetGeom(geom);
+            this->shapemodels[m]->SetGeom(geom);
             // Cycle through the radii
             for (int i = 0; i < rNum; i++) {
                 r = rMin + (i/(double)(rNum-1))*(rMax-rMin);
@@ -201,7 +216,7 @@ CreateScans::generate_scans()
                         rot = rotMin + (k/(double)(rotNum-1))*(rotMax-rotMin);
                         this->rotCurr = rot;
                         // Then move the model
-                        this->move_shape(this->shapemodels[m], r, theta, rot);
+                        this->move_shape(this->shapemodels[m],r,theta,rot,0);
                         // write the scan header to the file
                         // block type, size, distance, angle, rotation,
                         // noise level (always zero here),
@@ -212,17 +227,19 @@ CreateScans::generate_scans()
                         this->UpdateWorld();
                         // DEBUG
                         if (count%1000 == 0) {
+                            //* DEBUG
                             std::cout << "Percent Done = "
-                                      << (double)count/(double)num_scans
+                                      << 100*(double)count/(double)num_scans
                                       << "%" << std::endl;
+                            // */
                         }
                         count++;
                     }
                 }
             }
         }
-        // Move the shape back behind the lidar when we're done with it
-        this->move_shape(this->shapemodels[m], -5, 0, 0);
+        // Move the shape back up in the air when we're done with it
+        this->move_shape(this->shapemodels[m], 0, 0, 0, 1);
     }
 }
 
@@ -327,10 +344,10 @@ CreateScans::WorldCallback()
                 target[4] = this->rotCurr;
                 target[5] = 0;
                 // Append targets and scans to .npy file
-                cnpy::npy_save("targets.npy",target,targetShape,2,"a");
+                cnpy::npy_save(this->targ_filename.str(),target,targetShape,2,"a");
                 // The second numpy array is the list of ranges in the scan.
                 // There should be 181 scans, starting at -pi/2 to +pi/2
-                cnpy::npy_save("scans.npy",input,inputShape,2,"a");
+                cnpy::npy_save(this->scan_filename.str(),input,inputShape,2,"a");
             }
         }
     }

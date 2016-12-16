@@ -76,6 +76,7 @@ with tf.name_scope('fc_layer_5'):
                                          math.sqrt(float(c[5]*h[5]))),
                      name='weights5')
     b5 = tf.Variable(tf.zeros([1, 1024]), name='biases5')
+    # add Leaky ReLU and Batch Normalization
     f6 = tf.nn.relu(tf.matmul(reshape,w5) + b5)
 
 with tf.name_scope('fc_layer_6'):
@@ -84,6 +85,7 @@ with tf.name_scope('fc_layer_6'):
                                          math.sqrt(float(1024))),
                      name='weights6')
     b6 = tf.Variable(tf.zeros([1, 1024]), name='biases6')
+    # add Leaky ReLU and Batch Normalization
     f7 = tf.nn.relu(tf.matmul(f6,w6) + b6)
 
 with tf.name_scope('fc_layer_7'):
@@ -92,6 +94,7 @@ with tf.name_scope('fc_layer_7'):
                                          math.sqrt(float(1024))),
                      name='weights7')
     b7 = tf.Variable(tf.zeros([1, 26]), name='biases7')
+    # add Leaky ReLU and Batch Normalization
     f8 = tf.matmul(f7,w7) + b7
 
 targets = tf.placeholder(tf.float32, [batch_size, 26])

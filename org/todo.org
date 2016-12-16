@@ -64,15 +64,21 @@
    This can be done in python.
 
 ** TODO Write TensorFlow DCNN
-*** TODO Get a network running with ranges [0/3]
-    - [ ] Add (Leaky?) ReLU's and Batch Norm and/or Dropout
-    - [ ] Create loss function
-    - [ ] Create optimizer
+*** TODO Get a network running with ranges [3/6]
+    - [-] Add (Leaky?) ReLU's and Batch Norm and/or Dropout [1/4]
+      - [X] ReLU
+      - [ ] Leaky?
+      - [ ] Batch Norm [[http://bamos.github.io/2016/08/09/deep-completion/][see this]] 
+      - [ ] Dropout
+    - [X] Create loss function
+    - [X] Create optimizer
     - [ ] normalize inputs ~N(0,1)
-    - [ ] Design architecture.
+    - [X] Design architecture.
       - start with hyperlapse idea, but with 1D convolution.
       - used AlexNet with reduced dimensions. See hyperparameters [[file:~/ros_ws/src/lidar_dcnn/scripts/hyperlidar.py::#%20k_i%20=%20height%20of%201d%20convolution%20kernel%20in%20layer%20i][here]]
-    - [ ] Batch normalization [[http://bamos.github.io/2016/08/09/deep-completion/][see this]]
+    - [ ] Loop through data [0/2]
+      - [ ] figure out how to randomize data/targets for mini-batches
+      - [ ] make targets into 1-hot vectors
 *** TODO Figure out how to preprocess data
     - angles with first point being distance?
 

@@ -1,11 +1,18 @@
 import tensorflow as tf
+import numpy as np
 import math
+
+import random # for random.sample()
+
+# Python 2 or Python 3?
+import sys
+python_version = sys.version_info.major
 
 # There are 181 measurements in a scan
 NUM_RANGES = 181
 # There are 26 classes of object
 NUM_CLASSES = 26
-batch_size = 2;
+BATCH_SIZE = 50;
 
 # k_i = height of 1d convolution kernel in layer i
 # s_i = stride length in layer i
@@ -16,15 +23,16 @@ batch_size = 2;
 # c_i = number of channels in feature map in layer i
 # c_(i+1) = n_i
 
-h = [181, ];
+h = [NUM_RANGES, ];
 c = (  1, 48, 128, 196, 196, 128)
 k = (  6,  4,   3,   3,   3,   3)
 s = (  2,  2,   2,   1,   1,   1)
 for i in range(len(c)-1):
     h.append( math.floor( ( h[i] - k[i] ) / s[i] + 1 ) )
+fc = (1024, 1024, NUM_CLASSES)
 
 with tf.name_scope('conv_layer_0'):
-    f0 = tf.placeholder(tf.float32, [batch_size, h[0], c[0]])
+    f0 = tf.placeholder(tf.float32, [BATCH_SIZE, h[0], c[0]])
     k0 = tf.Variable(tf.truncated_normal([k[0], c[0], c[1]],
                                           stddev = 1.0 /
                                           math.sqrt(float(k[0]*c[1]))),
@@ -70,8 +78,8 @@ with tf.name_scope('conv_layer_4'):
     f5 = tf.nn.relu(tf.nn.conv1d(f4,k4,stride=s[4],padding='VALID') + b4)
 
 with tf.name_scope('fc_layer_5'):
-    reshape = tf.reshape(f5, [batch_size, -1])
-    w5 = tf.Variable(tf.truncated_normal([c[5]*h[5], 1024],
+    reshape = tf.reshape(f5, [BATCH_SIZE, -1])
+    w5 = tf.Variable(tf.truncated_normal([c[5]*h[5], fc[0]],
                                          stddev = 1.0 /
                                          math.sqrt(float(c[5]*h[5]))),
                      name='weights5')
@@ -80,33 +88,62 @@ with tf.name_scope('fc_layer_5'):
     f6 = tf.nn.relu(tf.matmul(reshape,w5) + b5)
 
 with tf.name_scope('fc_layer_6'):
-    w6 = tf.Variable(tf.truncated_normal([1024, 1024],
+    w6 = tf.Variable(tf.truncated_normal([fc[0], fc[1]],
                                          stddev = 1.0 /
-                                         math.sqrt(float(1024))),
+                                         math.sqrt(float(fc[0]))),
                      name='weights6')
     b6 = tf.Variable(tf.zeros([1, 1024]), name='biases6')
     # add Leaky ReLU and Batch Normalization
     f7 = tf.nn.relu(tf.matmul(f6,w6) + b6)
 
 with tf.name_scope('fc_layer_7'):
-    w7 = tf.Variable(tf.truncated_normal([1024, 26],
+    w7 = tf.Variable(tf.truncated_normal([fc[1],fc[2]],
                                          stddev = 1.0 /
-                                         math.sqrt(float(1024))),
+                                         math.sqrt(float(fc[1]))),
                      name='weights7')
     b7 = tf.Variable(tf.zeros([1, 26]), name='biases7')
     # add Leaky ReLU and Batch Normalization
     f8 = tf.matmul(f7,w7) + b7
 
-targets = tf.placeholder(tf.float32, [batch_size, 26])
+targets = tf.placeholder(tf.float32, [BATCH_SIZE, 26])
 
 cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(f8,targets))
 train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
 
+# Load the shapes as onehot vectors (shape n -> [0, 0, ..., 1, ..., 0], where
+# the 1 is at the nth index in the vector (starting with 0).
+path_to_targs = "../world/targs_struct_s5-10_r15-35.npy"
+if python_version == 3:
+    shape_onehot = np.eye(26)[list(map(int,np.load(path_to_targs)[:,0].tolist()))]
+else:
+    shape_onehot = np.eye(26)[map(int,np.load(path_to_targs)[:,0].tolist())]
+
+# Load the scans
+path_to_scans = "../world/scans_struct_s5-10_r15-35.npy"
+scans = np.load(path_to_scans)
+scans = np.expand_dims(scans, axis=2)
+
+# separate training data and validation data
+val_size = 10000 # reserve this many data points for validation
+val_ind = random.sample(range(0,scans.shape[0]),val_size)
+shape_onehot_val = shape_onehot[val_ind,:]
+scans_val = scans[val_ind,:]
+shape_onehot_train = np.delete(shape_onehot, val_ind, 0)
+scans_train = np.delete(scans, val_ind, 0)
+
 sess = tf.Session()
 with sess.as_default():
     tf.global_variables_initializer().run()
-    batch_scans = tf.random_uniform([batch_size, h[0], c[0]], maxval=50).eval()
-    batch_targets = tf.random_uniform([batch_size, 26], maxval=float(1/26)).eval()
-    output = sess.run(train_step, feed_dict={f0: batch_scans, targets: batch_targets})
+
+    for i in range(10000):
+        # Select new random indicies
+        batch_ind = random.sample(range(0,scans_train.shape[0]),BATCH_SIZE)
+
+        output = sess.run(train_step, feed_dict={f0: scans[batch_ind,:], targets: shape_onehot[batch_ind,:]})
     print(output)
-    print(h)
+
+    correct = tf.equal(tf.argmax(tf.nn.softmax(f8),1), tf.argmax(targets,1))
+    accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
+    print(sess.run(correct, feed_dict={f0: scans_val[0:BATCH_SIZE,:], targets: shape_onehot_val[0:BATCH_SIZE,:]}))
+
+    print(sess.run(accuracy, feed_dict={f0: scans_val[0:BATCH_SIZE,:], targets: shape_onehot_val[0:BATCH_SIZE,:]}))

@@ -64,7 +64,7 @@
    This can be done in python.
 
 ** TODO Write TensorFlow DCNN
-*** TODO Get a network running with ranges [6/8]
+*** TODO Get a network running with ranges [8/9]
     - [X] Setup tensorboard [[https://www.tensorflow.org/how_tos/summaries_and_tensorboard/][tutorial]]
     - [-] Add (Leaky?) ReLU's and Batch Norm and/or Dropout [1/4]
       - [X] ReLU
@@ -73,14 +73,28 @@
       - [ ] Dropout
     - [X] Create loss function
     - [X] Create optimizer
-    - [ ] normalize inputs ~N(0,1)
+    - [X] normalize inputs ~N(0,1) (did I do this correctly?)
     - [X] Design architecture.
-      - start with hyperlapse idea, but with 1D convolution.
+      - start with hyperface idea, but with 1D convolution.
       - used AlexNet with reduced dimensions. See hyperparameters [[file:~/ros_ws/src/lidar_dcnn/scripts/hyperlidar.py::#%20k_i%20=%20height%20of%201d%20convolution%20kernel%20in%20layer%20i][here]]
     - [X] Loop through data [2/2]
       - [X] figure out how to randomize data/targets for mini-batches
       - [X] make targets into 1-hot vectors
     - [X] Test Data
+    - [X] Design network for changing batch sizes (testing uses whole set.)
+    - [ ] Save variables (weights and biases)
+      - figure out how to start from a specific global_step
+*** TODO Use Hyperface's expanded loss function
+    - Test for [1/6]
+      + [X] block type (A-Z, shapes, etc.)
+      + [ ] angle
+        + -90 on the +y-axis, 0 on the x-axis, 90 on the -y-axis
+      + [ ] distance (from lidar)
+      + [ ] rotation (angle with respect to angle above)
+      + [ ] size
+        + 1 = text height of 1 m. Actual text is sometimes a bit larger.
+      + [ ] noise level (will do in post)
+        + angle - uniform(0,180), distance - normal(0,noise level)
 *** TODO Figure out how to preprocess data
     - angles with first point being distance?
 

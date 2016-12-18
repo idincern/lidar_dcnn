@@ -12,20 +12,28 @@ import numpy as np
 import math
 import random # for random.sample()
 
-
-
 FLAGS = None
 
 def train():
     # Import data
-    # Load the shapes as onehot vectors (shape n -> [0, 0, ..., 1, ..., 0],
-    # where the 1 is at the nth index in the vector (starting with 0).
+    # First load all the targets (shape class, size, distance, angle, rotation,
+    # and noise level).
     path_to_targs = FLAGS.data_dir + "/targs_struct_s5-10_r15-35.npy"
     targs_raw = np.load(path_to_targs)
+    # Load the classes as onehot vectors (shape n -> [0, 0, ..., 1, ..., 0],
+    # where the 1 is at the nth index in the vector (starting with 0).
     if python_version == 3:
-        yClass =np.eye(26)[list(map(int,targs_raw[:,0].tolist()))]
+        yClass = np.eye(26)[list(map(int,targs_raw[:,0].tolist()))]
     else:
-        yClass =np.eye(26)[map(int,targs_raw[:,0].tolist())]
+        yClass = np.eye(26)[map(int,targs_raw[:,0].tolist())]
+    # Then load the size, distance, angle, and rotation. They may need to be
+    # scaled.  But, I think this can be done by adjusting their loss's weights
+    # in the total loss function.
+    ySize = targs_raw[:,1]
+    yDist = targs_raw[:,2]
+    yAng = targs_raw[:,3]
+    yRot = targs_raw[:,4]
+    yNoise = targs_raw[:,5]
 
     # Load the scans
     path_to_scans = FLAGS.data_dir + "/scans_struct_s5-10_r15-35.npy"
@@ -38,10 +46,22 @@ def train():
     # pick test_size indicies and put those into y_test and x_test
     test_ind = random.sample(range(0,x.shape[0]),test_size)
     yClass_test = yClass[test_ind,:]
+    ySize_test = ySize[test_ind]
+    yDist_test = yDist[test_ind]
+    yAng_test = yAng[test_ind]
+    yRot_test = yRot[test_ind]
+    yNoise_test = yNoise[test_ind]
     x_test = x[test_ind,:]
     # Then remove the test data from the set to make the training data
     yClass_train = np.delete(yClass, test_ind, 0)
+    ySize_train = np.delete(ySize, test_ind, 0)
+    yDist_train = np.delete(yDist, test_ind, 0)
+    yAng_train = np.delete(yAng, test_ind, 0)
+    yRot_train = np.delete(yRot, test_ind, 0)
+    yNoise_train = np.delete(yNoise, test_ind, 0)
     x_train = np.delete(x, test_ind, 0)
+
+    print('Data loaded and divided into training and testing sets.')
 
     def variable_summaries(var):
         """Attach a lot of summaries to a Tensor (for TensorBoard vis).

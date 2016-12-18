@@ -65,6 +65,7 @@
 
 ** TODO Write TensorFlow DCNN
 *** TODO Get a network running with ranges [4/6]
+    - [ ] Setup tensorboard [[https://www.tensorflow.org/how_tos/summaries_and_tensorboard/][tutorial]]
     - [-] Add (Leaky?) ReLU's and Batch Norm and/or Dropout [1/4]
       - [X] ReLU
       - [ ] Leaky?

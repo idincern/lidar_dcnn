@@ -21,10 +21,11 @@ def train():
     # Load the shapes as onehot vectors (shape n -> [0, 0, ..., 1, ..., 0],
     # where the 1 is at the nth index in the vector (starting with 0).
     path_to_targs = FLAGS.data_dir + "/targs_struct_s5-10_r15-35.npy"
+    targs_raw = np.load(path_to_targs)
     if python_version == 3:
-        y = np.eye(26)[list(map(int,np.load(path_to_targs)[:,0].tolist()))]
+        yClass =np.eye(26)[list(map(int,targs_raw[:,0].tolist()))]
     else:
-        y = np.eye(26)[map(int,np.load(path_to_targs)[:,0].tolist())]
+        yClass =np.eye(26)[map(int,targs_raw[:,0].tolist())]
 
     # Load the scans
     path_to_scans = FLAGS.data_dir + "/scans_struct_s5-10_r15-35.npy"
@@ -36,10 +37,10 @@ def train():
     test_size = 10000 # reserve this many data points for testing
     # pick test_size indicies and put those into y_test and x_test
     test_ind = random.sample(range(0,x.shape[0]),test_size)
-    y_test = y[test_ind,:]
+    yClass_test = yClass[test_ind,:]
     x_test = x[test_ind,:]
     # Then remove the test data from the set to make the training data
-    y_train = np.delete(y, test_ind, 0)
+    yClass_train = np.delete(yClass, test_ind, 0)
     x_train = np.delete(x, test_ind, 0)
 
     def variable_summaries(var):
@@ -142,11 +143,11 @@ def train():
 
     ''' Define input placeholders
     x0 is the input data (i.e. a lidar scan).
-    y_ is the target (shape class, size, distance, angle, and rotation)
+    yClass_ is the target (shape class, size, distance, angle, and rotation)
     '''
     with tf.name_scope('input'):
         x0 = tf.placeholder(tf.float32, [None, h[0], c[0]], name='x-input')
-        y_ = tf.placeholder(tf.float32, [None, NUM_CLASSES], name='y-input')
+        yClass_ = tf.placeholder(tf.float32, [None, NUM_CLASSES], name='y-class-input')
 
     ''' Define the inference model
     5 1d convolutional layers and 3 fully connected layers.
@@ -160,25 +161,31 @@ def train():
     x5_reshape = conv2fc(x5, 'reshape_5')
     x6 = fc_layer(x5_reshape,h[5]*c[5],fc[0],'fc_layer_5')
     x7 = fc_layer(x6,fc[0],fc[1],'fc_layer_6')
-    y = fc_layer(x7,fc[1],fc[2],'fc_layer_7',act=tf.identity)
+    yClass = fc_layer(x7,fc[1],fc[2],'fc_layer_7',act=tf.identity)
 
     ''' Define the loss functions
     For HyperScan, the loss function will be minimized by correctly
     guessing the shape class, size, distance, angle, and rotation of the shape.
     '''
+    # Loss for shape class
     with tf.name_scope('cross_entropy'):
-        diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
+        diff = tf.nn.softmax_cross_entropy_with_logits(yClass, yClass_)
         with tf.name_scope('total'):
             cross_entropy = tf.reduce_mean(diff)
     tf.summary.scalar('cross_entropy',cross_entropy)
 
+    ''' Define the training ops
+    Train using the AdamOptimizer, which includes momentum
+    https://www.tensorflow.org/api_docs/python/train/optimizers#AdamOptimizer
+    '''
     with tf.name_scope('train'):
         train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(
             cross_entropy)
 
         with tf.name_scope('accuracy'):
             with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+                correct_prediction = tf.equal(tf.argmax(yClass,1),
+                                              tf.argmax(yClass_,1))
             with tf.name_scope('accuracy'):
                 accuracy = tf.reduce_mean(tf.cast(correct_prediction,
                                                   tf.float32))
@@ -199,13 +206,13 @@ def train():
             # Select new random indicies
             batch_ind = random.sample(range(0,x_train.shape[0]),BATCH_SIZE)
             xs = x_train[batch_ind,:]
-            ys = y_train[batch_ind,:]
+            ysClass = yClass_train[batch_ind,:]
             k = FLAGS.dropout
         else:
             xs = x_test
-            ys = y_test
+            ysClass = yClass_test
             k = 1.0
-        return {x0: xs, y_: ys}
+        return {x0: xs, yClass_: ysClass}
 
     # Set the file where the variables will be stored
     checkpoint_file = os.path.join(FLAGS.log_dir, 'model.ckpt')

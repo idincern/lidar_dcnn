@@ -30,6 +30,7 @@ def train():
     path_to_scans = FLAGS.data_dir + "/scans_struct_s5-10_r15-35.npy"
     x = np.load(path_to_scans)
     x = np.expand_dims(x, axis=2)
+    x = (x-np.mean(x))/np.std(x)
 
     # separate training data and test data
     test_size = 10000 # reserve this many data points for testing
@@ -104,7 +105,7 @@ def train():
                 tf.summary.histogram('activations',activations)
             return activations
 
-    """Set hyperparameters of the network
+    '''Set hyperparameters of the network
     k_i = height of 1d convolution kernel in layer i
     s_i = stride length in layer i
     n_i = number of feature detectors (kernels) in layer i
@@ -113,7 +114,7 @@ def train():
     h_(i+1) = floor((h_i-k_i)/s_i + 1)
     c_i = number of channels in feature map in layer i
     c_(i+1) = n_i
-    """
+    '''
     # There are 181 measurements in a scan
     NUM_RANGES = 181
     # There are 26 classes of object (The alphabet)
@@ -130,15 +131,15 @@ def train():
 
     # Input placeholders
     with tf.name_scope('input'):
-        x0 = tf.placeholder(tf.float32, [BATCH_SIZE, h[0], c[0]])
-        y_ = tf.placeholder(tf.float32, [BATCH_SIZE, NUM_CLASSES])
+        x0 = tf.placeholder(tf.float32, [None, h[0], c[0]], name='x-input')
+        y_ = tf.placeholder(tf.float32, [None, NUM_CLASSES], name='y-input')
 
     x1 = conv1d_layer(x0,k[0],h[0],c[0],h[1],c[1],s[0],'conv_layer_0')
     x2 = conv1d_layer(x1,k[1],h[1],c[1],h[2],c[2],s[1],'conv_layer_1')
     x3 = conv1d_layer(x2,k[2],h[2],c[2],h[3],c[3],s[2],'conv_layer_2')
     x4 = conv1d_layer(x3,k[3],h[3],c[3],h[4],c[4],s[3],'conv_layer_3')
     x5 = conv1d_layer(x4,k[4],h[4],c[4],h[5],c[5],s[4],'conv_layer_4')
-    x5_reshape = tf.reshape(x5, [BATCH_SIZE, -1])
+    x5_reshape = tf.reshape(x5, [BATCH_SIZE, -1],name='reshape')
     x6 = fc_layer(x5_reshape,h[5]*c[5],fc[0],'fc_layer_5')
     x7 = fc_layer(x6,fc[0],fc[1],'fc_layer_6')
     y = fc_layer(x7,fc[1],fc[2],'fc_layer_7',act=tf.identity)
@@ -168,19 +169,48 @@ def train():
     train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     test_writer = tf.summary.FileWriter(FLAGS.log_dir + '/test')
 
+
+    def feed_dict(train):
+        if train:
+            # Select new random indicies
+            batch_ind = random.sample(range(0,x_train.shape[0]),BATCH_SIZE)
+            xs = x_train[batch_ind,:]
+            ys = y_train[batch_ind,:]
+            k = FLAGS.dropout
+        else:
+            xs = x_test [0:BATCH_SIZE,:]
+            ys = y_test [0:BATCH_SIZE,:]
+            k = 1.0
+        return {x0: xs, y_: ys}
+
+
     with sess.as_default():
         tf.global_variables_initializer().run()
 
         for i in range(FLAGS.max_steps):
-            # Select new random indicies
-            batch_ind = random.sample(range(0,x_train.shape[0]),BATCH_SIZE)
+            if i%10 == 0: # Record summaries adn test-set accuracy
+                summary, acc = sess.run([merged, accuracy], feed_dict=feed_dict(False))
+                test_writer.add_summary(summary,i)
+                print('Accuracy at step %s: %s' % (i, acc))
+            else: # Record train set summaries, and train
+                if i % 100 == 99: # Record execution stats
+                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                    run_metadata = tf.RunMetadata()
+                    summary, _ = sess.run([merged, train_step],
+                                          feed_dict=feed_dict(True),
+                                          options=run_options,
+                                          run_metadata=run_metadata)
+                    train_writer.add_run_metadata(run_metadata, 'step%03d' % i)
+                    train_writer.add_summary(summary, i)
+                    print('Adding run metadata for ', i)
+                else: # Record a summary
+                    summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
+                    train_writer.add_summary(summary, i)
+        train_writer.close()
+        test_writer.close()
+        print(sess.run(correct_prediction, feed_dict=feed_dict(False)))
 
-            output = sess.run(train_step, feed_dict={x0: x_train[batch_ind,:], y_: y_train[batch_ind,:]})
-        print(output)
-
-        print(sess.run(correct_prediction, feed_dict={x0: x_test[0:BATCH_SIZE,:], y_: y_test[0:BATCH_SIZE,:]}))
-
-        print(sess.run(accuracy, feed_dict={x0: x_test[0:BATCH_SIZE,:], y_: y_test[0:BATCH_SIZE,:]}))
+        print(sess.run(accuracy, feed_dict=feed_dict(False)))
 
 def main(_):
     if tf.gfile.Exists(FLAGS.log_dir):

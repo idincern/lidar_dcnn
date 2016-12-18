@@ -43,7 +43,7 @@ def train():
 
     # separate training data and test data
     test_size = 10000 # reserve this many data points for testing
-    # pick test_size indicies and put those into y_test and x_test
+    # pick test_size indicies and put those into y*_test and x_test
     test_ind = random.sample(range(0,x.shape[0]),test_size)
     yClass_test = yClass[test_ind,:]
     ySize_test = ySize[test_ind]
@@ -167,7 +167,13 @@ def train():
     '''
     with tf.name_scope('input'):
         x0 = tf.placeholder(tf.float32, [None, h[0], c[0]], name='x-input')
-        yClass_ = tf.placeholder(tf.float32, [None, NUM_CLASSES], name='y-class-input')
+        yClass_ = tf.placeholder(tf.float32, [None, NUM_CLASSES],
+                                 name='y-class-input')
+        ySize_ = tf.placeholder(tf.float32, [None, 1], name='y-size-input')
+        yDist_ = tf.placeholder(tf.float32, [None, 1], name='y-distance-input')
+        yAng_ = tf.placeholder(tf.float32, [None, 1], name='y-angle-input')
+        yRot_ = tf.placeholder(tf.float32, [None, 1], name='y-rotation-input')
+        yNoise_ = tf.placeholder(tf.float32, [None, 1], name='y-noise-input')
 
     ''' Define the inference model
     5 1d convolutional layers and 3 fully connected layers.

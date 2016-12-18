@@ -6,7 +6,7 @@ import argparse
 # Python 2 or Python 3?
 import sys
 python_version = sys.version_info.major
-
+import os
 import tensorflow as tf
 import numpy as np
 import math
@@ -105,6 +105,17 @@ def train():
                 tf.summary.histogram('activations',activations)
             return activations
 
+    def conv2fc(input_tensor, layer_name):
+        """Reusable code to reshape a conv layer to be connected to an fc layer
+           First dimension of reshape must change dynamically, since the
+           dimension is different during training and testing.
+        """
+        with tf.name_scope(layer_name):
+            reshaped_tensor = tf.reshape(input_tensor,
+                                         [tf.shape(input_tensor)[0],-1],
+                                         name='reshape')
+            return reshaped_tensor
+
     '''Set hyperparameters of the network
     k_i = height of 1d convolution kernel in layer i
     s_i = stride length in layer i
@@ -139,7 +150,7 @@ def train():
     x3 = conv1d_layer(x2,k[2],h[2],c[2],h[3],c[3],s[2],'conv_layer_2')
     x4 = conv1d_layer(x3,k[3],h[3],c[3],h[4],c[4],s[3],'conv_layer_3')
     x5 = conv1d_layer(x4,k[4],h[4],c[4],h[5],c[5],s[4],'conv_layer_4')
-    x5_reshape = tf.reshape(x5, [BATCH_SIZE, -1],name='reshape')
+    x5_reshape = conv2fc(x5, 'reshape_5')
     x6 = fc_layer(x5_reshape,h[5]*c[5],fc[0],'fc_layer_5')
     x7 = fc_layer(x6,fc[0],fc[1],'fc_layer_6')
     y = fc_layer(x7,fc[1],fc[2],'fc_layer_7',act=tf.identity)
@@ -169,6 +180,8 @@ def train():
     train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
     test_writer = tf.summary.FileWriter(FLAGS.log_dir + '/test')
 
+    # Add op to save and restore all the variables.
+    saver = tf.train.Saver()
 
     def feed_dict(train):
         if train:
@@ -178,15 +191,17 @@ def train():
             ys = y_train[batch_ind,:]
             k = FLAGS.dropout
         else:
-            xs = x_test [0:BATCH_SIZE,:]
-            ys = y_test [0:BATCH_SIZE,:]
+            xs = x_test
+            ys = y_test
             k = 1.0
         return {x0: xs, y_: ys}
 
+    # Set the file where the variables will be stored
+    checkpoint_file = os.path.join(FLAGS.log_dir, 'model.ckpt')
 
     with sess.as_default():
         tf.global_variables_initializer().run()
-
+        # saver.restore(sess, checkpoint_file)
         for i in range(FLAGS.max_steps):
             if i%10 == 0: # Record summaries adn test-set accuracy
                 summary, acc = sess.run([merged, accuracy], feed_dict=feed_dict(False))
@@ -203,14 +218,15 @@ def train():
                     train_writer.add_run_metadata(run_metadata, 'step%03d' % i)
                     train_writer.add_summary(summary, i)
                     print('Adding run metadata for ', i)
+                    # Save a checkpoint
+                    save_path = saver.save(sess, checkpoint_file,
+                                           global_step=i)
+                    print("Model saved in file: %s" % save_path)
                 else: # Record a summary
                     summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
                     train_writer.add_summary(summary, i)
         train_writer.close()
         test_writer.close()
-        print(sess.run(correct_prediction, feed_dict=feed_dict(False)))
-
-        print(sess.run(accuracy, feed_dict=feed_dict(False)))
 
 def main(_):
     if tf.gfile.Exists(FLAGS.log_dir):

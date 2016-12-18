@@ -64,8 +64,8 @@
    This can be done in python.
 
 ** TODO Write TensorFlow DCNN
-*** TODO Get a network running with ranges [4/6]
-    - [ ] Setup tensorboard [[https://www.tensorflow.org/how_tos/summaries_and_tensorboard/][tutorial]]
+*** TODO Get a network running with ranges [6/8]
+    - [X] Setup tensorboard [[https://www.tensorflow.org/how_tos/summaries_and_tensorboard/][tutorial]]
     - [-] Add (Leaky?) ReLU's and Batch Norm and/or Dropout [1/4]
       - [X] ReLU
       - [ ] Leaky?
@@ -80,7 +80,7 @@
     - [X] Loop through data [2/2]
       - [X] figure out how to randomize data/targets for mini-batches
       - [X] make targets into 1-hot vectors
-    - [ ] Validate Data
+    - [X] Test Data
 *** TODO Figure out how to preprocess data
     - angles with first point being distance?
 

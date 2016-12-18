@@ -132,19 +132,26 @@ def train():
     NUM_CLASSES = 26
     BATCH_SIZE = 50;
 
-    h = [NUM_RANGES, ];
-    c = (  1, 48, 128, 196, 196, 128)
-    k = (  6,  4,   3,   3,   3,   3)
-    s = (  2,  2,   2,   1,   1,   1)
-    for i in range(len(c)-1):
+    h = [NUM_RANGES, ];               # conv1d feature map height
+    c = (  1, 48, 128, 196, 196, 128) # channels
+    k = (  6,  4,   3,   3,   3,   3) # kernel height
+    s = (  2,  2,   2,   1,   1,   1) # stride
+    for i in range(len(c)-1):         # equation to determine fm heights
         h.append( math.floor( ( h[i] - k[i] ) / s[i] + 1 ) )
-    fc = (1024, 1024, NUM_CLASSES)
+    fc = (1024, 1024, NUM_CLASSES)    # fully connected feature map height
 
-    # Input placeholders
+    ''' Define input placeholders
+    x0 is the input data (i.e. a lidar scan).
+    y_ is the target (shape class, size, distance, angle, and rotation)
+    '''
     with tf.name_scope('input'):
         x0 = tf.placeholder(tf.float32, [None, h[0], c[0]], name='x-input')
         y_ = tf.placeholder(tf.float32, [None, NUM_CLASSES], name='y-input')
 
+    ''' Define the inference model
+    5 1d convolutional layers and 3 fully connected layers.
+    hyperparameters are listed above (h,c,k,s,fc)
+    '''
     x1 = conv1d_layer(x0,k[0],h[0],c[0],h[1],c[1],s[0],'conv_layer_0')
     x2 = conv1d_layer(x1,k[1],h[1],c[1],h[2],c[2],s[1],'conv_layer_1')
     x3 = conv1d_layer(x2,k[2],h[2],c[2],h[3],c[3],s[2],'conv_layer_2')
@@ -155,6 +162,10 @@ def train():
     x7 = fc_layer(x6,fc[0],fc[1],'fc_layer_6')
     y = fc_layer(x7,fc[1],fc[2],'fc_layer_7',act=tf.identity)
 
+    ''' Define the loss functions
+    For HyperScan, the loss function will be minimized by correctly
+    guessing the shape class, size, distance, angle, and rotation of the shape.
+    '''
     with tf.name_scope('cross_entropy'):
         diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
         with tf.name_scope('total'):

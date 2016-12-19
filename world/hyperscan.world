@@ -1,0 +1,114 @@
+# Define a ranger (lidar), and a position (robot) model.
+# Place the robot with the lidar at the origin facing in the x direction
+
+include "models/A.inc"
+include "models/B.inc"
+include "models/C.inc"
+include "models/D.inc"
+include "models/E.inc"
+include "models/F.inc"
+include "models/G.inc"
+include "models/H.inc"
+include "models/I.inc"
+include "models/J.inc"
+include "models/K.inc"
+include "models/L.inc"
+include "models/M.inc"
+include "models/N.inc"
+include "models/O.inc"
+include "models/P.inc"
+include "models/Q.inc"
+include "models/R.inc"
+include "models/S.inc"
+include "models/T.inc"
+include "models/U.inc"
+include "models/V.inc"
+include "models/W.inc"
+include "models/X.inc"
+include "models/Y.inc"
+include "models/Z.inc"
+
+define shape model
+(
+  size [1.0 1.0 1.0]
+
+  block
+  (
+    points 4
+    point[3] [ 0.0000  1.0000]
+    point[2] [ 1.0000  1.0000]
+    point[1] [ 1.0000  0.0000]
+    point[0] [ 0.0000  0.0000]
+    z [0 1]
+  )
+
+  gui_nose 1
+  ranger_return 1
+)
+
+
+define lidar ranger
+(
+  sensor( 			
+    range [ 0.0  50.0 ]
+    fov 180
+   samples 181
+  )
+
+  # generic model properties
+  color "black"
+  size [ 0.050 0.050 0.100 ]
+)
+
+define robot position
+(
+  # describe size of robot
+  size [ 1.000 1.000 1.000 ]
+
+  # describe origin of robot by the offset from the center of the shape
+  # center of shape is at [0.75 0.5 0.5]. But, we want it to be at
+  # [1.0 0.5 0.5]. So, offset is [-0.25 0 0]
+  origin [-0.500 0.000 0.000 0.000]
+
+  # describe shape of robot
+  block
+  (
+    points 4
+    point[3] [0 0]
+    point[2] [1 0]
+    point[1] [1 1]
+    point[0] [0 1]
+    z [0 1]
+  )
+
+  drive "diff"
+
+  # sick_lasers()
+  lidar(
+    name "lidar"
+    pose [ 0.000 0.000 -0.500 0.000]
+  )
+
+)
+
+window
+(
+  size [1920 1031]
+  scale 87.887
+)
+
+robot
+(
+  name "robot"
+  pose [0.000 0.000 0.000 0.000]
+)
+
+H ( pose [ 5.233 3.435 0.000 -90.000])
+Y ( pose [ 4.555 1.757 0.000 -90.000])
+P ( pose [ 3.969 0.082 0.000 -90.000])
+E ( pose [ 3.439 -1.487 0.000 -90.000])
+R ( pose [ 2.878 -3.460 0.000 -90.000])
+S ( pose [ 2.343 2.304 0.000 -90.000])
+C ( pose [ 1.822 0.956 0.000 -90.000])
+A ( pose [ 1.483 -0.569 0.000 -90.000])
+N ( pose [ 0.978 -2.222 0.000 -90.000])

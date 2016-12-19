@@ -8,6 +8,10 @@ import sys
 python_version = sys.version_info.major
 import os
 import tensorflow as tf
+# The following 3 are to register a gradient op for tf.mod (below)
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import sparse_ops
 import numpy as np
 import math
 import random # for random.sample()
@@ -23,17 +27,17 @@ def train():
     # Load the classes as onehot vectors (shape n -> [0, 0, ..., 1, ..., 0],
     # where the 1 is at the nth index in the vector (starting with 0).
     if python_version == 3:
-        yClass = np.eye(26)[list(map(int,targs_raw[:,0].tolist()))]
+        yClass_data = np.eye(26)[list(map(int,targs_raw[:,0].tolist()))]
     else:
-        yClass = np.eye(26)[map(int,targs_raw[:,0].tolist())]
+        yClass_data = np.eye(26)[map(int,targs_raw[:,0].tolist())]
     # Then load the size, distance, angle, and rotation. They may need to be
     # scaled.  But, I think this can be done by adjusting their loss's weights
     # in the total loss function.
-    ySize = targs_raw[:,1]
-    yDist = targs_raw[:,2]
-    yAng = targs_raw[:,3]
-    yRot = targs_raw[:,4]
-    yNoise = targs_raw[:,5]
+    ySize_data = targs_raw[:,1]
+    yDist_data = targs_raw[:,2]
+    yAng_data = targs_raw[:,3]
+    yRot_data = targs_raw[:,4]
+    yNoise_data = targs_raw[:,5]
 
     # Load the scans
     path_to_scans = FLAGS.data_dir + "/scans_struct_s5-10_r15-35.npy"
@@ -45,20 +49,20 @@ def train():
     test_size = 10000 # reserve this many data points for testing
     # pick test_size indicies and put those into y*_test and x_test
     test_ind = random.sample(range(0,x.shape[0]),test_size)
-    yClass_test = yClass[test_ind,:]
-    ySize_test = ySize[test_ind]
-    yDist_test = yDist[test_ind]
-    yAng_test = yAng[test_ind]
-    yRot_test = yRot[test_ind]
-    yNoise_test = yNoise[test_ind]
+    yClass_test = yClass_data[test_ind,:]
+    ySize_test = ySize_data[test_ind]
+    yDist_test = yDist_data[test_ind]
+    yAng_test = yAng_data[test_ind]
+    yRot_test = yRot_data[test_ind]
+    yNoise_test = yNoise_data[test_ind]
     x_test = x[test_ind,:]
     # Then remove the test data from the set to make the training data
-    yClass_train = np.delete(yClass, test_ind, 0)
-    ySize_train = np.delete(ySize, test_ind, 0)
-    yDist_train = np.delete(yDist, test_ind, 0)
-    yAng_train = np.delete(yAng, test_ind, 0)
-    yRot_train = np.delete(yRot, test_ind, 0)
-    yNoise_train = np.delete(yNoise, test_ind, 0)
+    yClass_train = np.delete(yClass_data, test_ind, 0)
+    ySize_train = np.delete(ySize_data, test_ind, 0)
+    yDist_train = np.delete(yDist_data, test_ind, 0)
+    yAng_train = np.delete(yAng_data, test_ind, 0)
+    yRot_train = np.delete(yRot_data, test_ind, 0)
+    yNoise_train = np.delete(yNoise_data, test_ind, 0)
     x_train = np.delete(x, test_ind, 0)
 
     print('Data loaded and divided into training and testing sets.')
@@ -169,14 +173,15 @@ def train():
         x0 = tf.placeholder(tf.float32, [None, h[0], c[0]], name='x-input')
         yClass_ = tf.placeholder(tf.float32, [None, NUM_CLASSES],
                                  name='y-class-input')
-        ySize_ = tf.placeholder(tf.float32, [None, 1], name='y-size-input')
-        yDist_ = tf.placeholder(tf.float32, [None, 1], name='y-distance-input')
-        yAng_ = tf.placeholder(tf.float32, [None, 1], name='y-angle-input')
-        yRot_ = tf.placeholder(tf.float32, [None, 1], name='y-rotation-input')
-        yNoise_ = tf.placeholder(tf.float32, [None, 1], name='y-noise-input')
+        ySize_ = tf.placeholder(tf.float32, [None], name='y-size-input')
+        yDist_ = tf.placeholder(tf.float32, [None], name='y-distance-input')
+        yAng_ = tf.placeholder(tf.float32, [None], name='y-angle-input')
+        yRot_ = tf.placeholder(tf.float32, [None], name='y-rotation-input')
+        yNoise_ = tf.placeholder(tf.float32, [None], name='y-noise-input')
 
     ''' Define the inference model
-    5 1d convolutional layers and 3 fully connected layers.
+    5 1d convolutional layers, 2 fully connected hidden layers, and 5-6
+    fully connected output layers.
     hyperparameters are listed above (h,c,k,s,fc)
     '''
     x1 = conv1d_layer(x0,k[0],h[0],c[0],h[1],c[1],s[0],'conv_layer_0')
@@ -187,18 +192,66 @@ def train():
     x5_reshape = conv2fc(x5, 'reshape_5')
     x6 = fc_layer(x5_reshape,h[5]*c[5],fc[0],'fc_layer_5')
     x7 = fc_layer(x6,fc[0],fc[1],'fc_layer_6')
-    yClass = fc_layer(x7,fc[1],fc[2],'fc_layer_7',act=tf.identity)
+    # Each output layer is fully connected to x7
+    yClass = fc_layer(x7,fc[1],fc[2],'fc_layer_class',act=tf.identity)
+    ySize = fc_layer(x7,fc[1],1,'fc_layer_size',act=tf.identity)
+    yDist = fc_layer(x7,fc[1],1,'fc_layer_distance',act=tf.identity)
+    yAng = fc_layer(x7,fc[1],1,'fc_layer_angle',act=tf.identity)
+    yRot = fc_layer(x7,fc[1],1,'fc_layer_rotation',act=tf.identity)
+
+    ''' Smallest angle between two angles, constrained to [-pi,pi)
+    '''
+    def smallest_angle(a1,a2):
+        da = tf.sub(tf.mod(a1 - a2 + math.pi/2,math.pi),math.pi/2)
+        return da
 
     ''' Define the loss functions
     For HyperScan, the loss function will be minimized by correctly
     guessing the shape class, size, distance, angle, and rotation of the shape.
     '''
     # Loss for shape class
-    with tf.name_scope('cross_entropy'):
-        diff = tf.nn.softmax_cross_entropy_with_logits(yClass, yClass_)
-        with tf.name_scope('total'):
-            cross_entropy = tf.reduce_mean(diff)
-    tf.summary.scalar('cross_entropy',cross_entropy)
+    with tf.name_scope('class_loss'):
+        class_diff = tf.nn.softmax_cross_entropy_with_logits(yClass, yClass_)
+        with tf.name_scope('class_total_loss'):
+            class_loss = tf.reduce_mean(class_diff)
+    tf.summary.scalar('class_loss',class_loss)
+    # Loss for shape size
+    with tf.name_scope('size_loss'):
+        size_diff = tf.squared_difference(ySize,ySize_)
+        with tf.name_scope('size_total_loss'):
+            size_loss = tf.reduce_mean(size_diff)
+    tf.summary.scalar('size_loss',size_loss)
+    # Loss for shape distance
+    with tf.name_scope('distance_loss'):
+        dist_diff = tf.squared_difference(yDist,yDist_)
+        with tf.name_scope('distance_total_loss'):
+            dist_loss = tf.reduce_mean(dist_diff)
+    tf.summary.scalar('distance_loss',dist_loss)
+    # Loss for shape angle
+    with tf.name_scope('angle_loss'):
+        ang_diff = tf.squared_difference(yAng,yAng_)
+        with tf.name_scope('angle_total_loss'):
+            ang_loss = tf.reduce_mean(ang_diff)
+    tf.summary.scalar('angle_loss',ang_loss)
+    # Loss for shape rotation
+    with tf.name_scope('rotation_loss'):
+        rot_diff = tf.square(smallest_angle(yRot,yRot_))
+        with tf.name_scope('rotation_total_loss'):
+            rot_loss = tf.reduce_mean(rot_diff)
+    tf.summary.scalar('rotation_loss',rot_loss)
+    # Total Loss for all the categories
+    with tf.name_scope('total_loss'):
+        lam = tf.constant([1.0,0.05,0.01,0.333,0.333],tf.float32,[6],'loss_weights')
+        tot_loss = tf.mul(lam[0],class_loss) + tf.mul(lam[1],size_loss) + tf.mul(lam[2],dist_loss) + tf.mul(lam[3],ang_loss)# + tf.mul(lam[4],rot_loss)
+
+    # Define the gradient for the mod operator
+    @ops.RegisterGradient("Mod")
+    def _mod_grad(op, grad):
+        x, y = op.inputs
+        gz = grad
+        x_grad = gz
+        y_grad = tf.reduce_mean(-(x // y) * gz, reduction_indices=[0], keep_dims=True)
+        return x_grad, y_grad
 
     ''' Define the training ops
     Train using the AdamOptimizer, which includes momentum
@@ -206,7 +259,7 @@ def train():
     '''
     with tf.name_scope('train'):
         train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(
-            cross_entropy)
+            tot_loss)
 
         with tf.name_scope('accuracy'):
             with tf.name_scope('correct_prediction'):
@@ -233,12 +286,21 @@ def train():
             batch_ind = random.sample(range(0,x_train.shape[0]),BATCH_SIZE)
             xs = x_train[batch_ind,:]
             ysClass = yClass_train[batch_ind,:]
+            ysSize = ySize_train[batch_ind]
+            ysDist = yDist_train[batch_ind]
+            ysAng = yAng_train[batch_ind]
+            ysRot = yRot_train[batch_ind]
             k = FLAGS.dropout
         else:
             xs = x_test
             ysClass = yClass_test
+            ysSize = ySize_test
+            ysDist = yDist_test
+            ysAng = yAng_test
+            ysRot = yRot_test
             k = 1.0
-        return {x0: xs, yClass_: ysClass}
+        return {x0: xs, yClass_: ysClass, ySize_: ysSize, yDist_: ysDist,
+                yAng_: ysAng, yRot_: ysRot}
 
     # Set the file where the variables will be stored
     checkpoint_file = os.path.join(FLAGS.log_dir, 'model.ckpt')

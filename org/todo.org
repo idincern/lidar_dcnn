@@ -98,6 +98,17 @@
 *** TODO Figure out how to preprocess data
     - angles with first point being distance?
 
+
+* Obstacle avoidance
+- Read current linear and angluar speed command
+- Read lidar scan.
+- Limit `Obstacles' list to points in a localized area.
+- Determine the path of least deviation that misses all the obstacles
+-- To the left of the left-most obstacle or to the right of the right-most obstacle.
+- velocity command should be published upon the receipt of a velocity_pre command, using the latest lidar data.
+
+
+
 * Useful Commands
 ** -TODO items
 M-shift-RET -- Make new TODO item

@@ -43,6 +43,7 @@ def train():
     path_to_scans = FLAGS.data_dir + "/scans_struct_s5-10_r15-35.npy"
     x = np.load(path_to_scans)
     x = np.expand_dims(x, axis=2)
+    # TODO: review this normalization process
     x = (x-np.mean(x))/np.std(x)
 
     # separate training data and test data

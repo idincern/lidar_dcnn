@@ -241,7 +241,7 @@ def train():
     tf.summary.scalar('rotation_loss',rot_loss)
     # Total Loss for all the categories
     with tf.name_scope('total_loss'):
-        lam = tf.constant([1.0,0.05,0.01,0.333,0.333],tf.float32,[6],'loss_weights')
+        lam = tf.constant([1.0,0.5,0.5,1,1],tf.float32,[6],'loss_weights')
         tot_loss = tf.mul(lam[0],class_loss) + tf.mul(lam[1],size_loss) + tf.mul(lam[2],dist_loss) + tf.mul(lam[3],ang_loss)# + tf.mul(lam[4],rot_loss)
 
     # Define the gradient for the mod operator

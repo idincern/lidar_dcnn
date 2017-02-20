@@ -243,7 +243,7 @@ def train():
     # Total Loss for all the categories
     with tf.name_scope('total_loss'):
         lam = tf.constant([1.0,0.5,0.5,1,1],tf.float32,[6],'loss_weights')
-        tot_loss = tf.mul(lam[0],class_loss) + tf.mul(lam[1],size_loss) + tf.mul(lam[2],dist_loss) + tf.mul(lam[3],ang_loss)# + tf.mul(lam[4],rot_loss)
+        tot_loss = tf.multiply(lam[0],class_loss) + tf.multiply(lam[1],size_loss) + tf.multiply(lam[2],dist_loss) + tf.multiply(lam[3],ang_loss)# + tf.multiply(lam[4],rot_loss)
 
     # Define the gradient for the mod operator
     @ops.RegisterGradient("Mod")

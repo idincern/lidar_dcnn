@@ -203,7 +203,7 @@ def train():
     ''' Smallest angle between two angles, constrained to [-pi,pi)
     '''
     def smallest_angle(a1,a2):
-        da = tf.sub(tf.mod(a1 - a2 + math.pi/2,math.pi),math.pi/2)
+        da = tf.subtract(tf.mod(a1 - a2 + math.pi/2,math.pi),math.pi/2)
         return da
 
     ''' Define the loss functions

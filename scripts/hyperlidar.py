@@ -212,7 +212,7 @@ def train():
     '''
     # Loss for shape class
     with tf.name_scope('class_loss'):
-        class_diff = tf.nn.softmax_cross_entropy_with_logits(yClass, yClass_)
+        class_diff = tf.nn.softmax_cross_entropy_with_logits(labels=yClass_,logits=yClass)
         with tf.name_scope('class_total_loss'):
             class_loss = tf.reduce_mean(class_diff)
     tf.summary.scalar('class_loss',class_loss)

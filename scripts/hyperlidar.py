@@ -42,6 +42,9 @@ def train():
     # Load the scans
     path_to_scans = FLAGS.data_dir + "/scans_struct_s5-10_r15-35.npy"
     x = np.load(path_to_scans)
+    # Changes shape of x from (975000, 181) to (975000, 181,1).
+    # This is because the dimensions of each layer is
+    # (batch_size, height, channels)
     x = np.expand_dims(x, axis=2)
     # TODO: review this normalization process
     x = (x-np.mean(x))/np.std(x)
@@ -242,8 +245,8 @@ def train():
     tf.summary.scalar('rotation_loss',rot_loss)
     # Total Loss for all the categories
     with tf.name_scope('total_loss'):
-        lam = tf.constant([1.0,0.5,0.5,1,1],tf.float32,[6],'loss_weights')
-        tot_loss = tf.multiply(lam[0],class_loss) + tf.multiply(lam[1],size_loss) + tf.multiply(lam[2],dist_loss) + tf.multiply(lam[3],ang_loss)# + tf.multiply(lam[4],rot_loss)
+        lam = tf.constant([0,0,0,1,1],tf.float32,[6],'loss_weights')
+        tot_loss =  class_loss# tf.multiply(lam[0],class_loss) + tf.multiply(lam[1],size_loss) + tf.multiply(lam[2],dist_loss) + tf.multiply(lam[3],ang_loss)# + tf.multiply(lam[4],rot_loss)
 
     # Define the gradient for the mod operator
     @ops.RegisterGradient("Mod")
@@ -263,13 +266,19 @@ def train():
             tot_loss)
 
         with tf.name_scope('accuracy'):
-            with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(yClass,1),
-                                              tf.argmax(yClass_,1))
-            with tf.name_scope('accuracy'):
-                accuracy = tf.reduce_mean(tf.cast(correct_prediction,
-                                                  tf.float32))
-        tf.summary.scalar('accuracy', accuracy)
+            with tf.name_scope('correct_class_prediction'):
+                correct_class_prediction = tf.equal(tf.argmax(yClass,1),
+                                                    tf.argmax(yClass_,1))
+                class_accuracy = tf.reduce_mean(tf.cast(
+                    correct_class_prediction, tf.float32))
+            with tf.name_scope('correct_distance_prediction'):
+                distance_accuracy = tf.reduce_mean(tf.abs(yDist-yDist_))
+            with tf.name_scope('correct_angle_prediction'):
+                angle_accuracy = tf.reduce_mean(tf.abs(yAng-yAng_))
+
+        tf.summary.scalar('class_accuracy', class_accuracy)
+        tf.summary.scalar('distance_accuracy', distance_accuracy)
+        tf.summary.scalar('angle_accuracy', angle_accuracy)
 
     sess = tf.Session()
 
@@ -311,9 +320,9 @@ def train():
         # saver.restore(sess, checkpoint_file)
         for i in range(FLAGS.max_steps):
             if i%10 == 0: # Record summaries adn test-set accuracy
-                summary, acc = sess.run([merged, accuracy], feed_dict=feed_dict(False))
+                summary, class_acc, distance_acc, angle_acc = sess.run([merged, class_accuracy,distance_accuracy,angle_accuracy], feed_dict=feed_dict(False))
                 test_writer.add_summary(summary,i)
-                print('Accuracy at step %s: %s' % (i, acc))
+                print('Class, distance, and angular accuracy at step %s: %s, %s, %s' % (i, class_acc,distance_acc, angle_acc))
             else: # Record train set summaries, and train
                 if i % 100 == 99: # Record execution stats
                     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)

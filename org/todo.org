@@ -64,7 +64,7 @@
    This can be done in python.
 
 ** TODO Write TensorFlow DCNN
-*** TODO Get a network running with ranges [8/9]
+*** TODO Get a network running with ranges [8/10]
     - [X] Setup tensorboard [[https://www.tensorflow.org/how_tos/summaries_and_tensorboard/][tutorial]]
     - [-] Add (Leaky?) ReLU's and Batch Norm and/or Dropout [1/4]
       - [X] ReLU
@@ -85,18 +85,29 @@
     - [ ] Save variables (weights and biases)
       - figure out how to start from a specific global_step
 *** TODO Use Hyperface's expanded loss function
-    - Test for [1/6]
+    - Add loss for [4/6]
       + [X] block type (A-Z, shapes, etc.)
-      + [ ] angle
+      + [X] angle
         + -90 on the +y-axis, 0 on the x-axis, 90 on the -y-axis
-      + [ ] distance (from lidar)
+      + [X] distance (from lidar)
       + [ ] rotation (angle with respect to angle above)
-      + [ ] size
+      + [X] size
         + 1 = text height of 1 m. Actual text is sometimes a bit larger.
       + [ ] noise level (will do in post)
         + angle - uniform(0,180), distance - normal(0,noise level)
 *** TODO Figure out how to preprocess data
     - angles with first point being distance?
+
+
+* Obstacle avoidance
+- Read current linear and angluar speed command
+- Read lidar scan.
+- Limit `Obstacles' list to points in a localized area.
+- Determine the path of least deviation that misses all the obstacles
+-- To the left of the left-most obstacle or to the right of the right-most obstacle.
+- velocity command should be published upon the receipt of a velocity_pre command, using the latest lidar data.
+* TODO DEBUG - Curvatures to Left and Right are the same!
+
 
 * Useful Commands
 ** -TODO items

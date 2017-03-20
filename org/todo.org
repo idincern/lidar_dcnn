@@ -106,7 +106,7 @@
 - Determine the path of least deviation that misses all the obstacles
 -- To the left of the left-most obstacle or to the right of the right-most obstacle.
 - velocity command should be published upon the receipt of a velocity_pre command, using the latest lidar data.
-
+* TODO DEBUG - Curvatures to Left and Right are the same!
 
 
 * Useful Commands

@@ -98,7 +98,7 @@ h2 = lrelu(tf.nn.conv2d_transpose(h1,w2,
                                   strides=[1,2,2,1]))
 # conv transpose 3
 w3 = weight_variable([5,5,h2_c,h3_c])
-h1 = lrelu(tf.nn.conv2d_transpose(h2,w3,
+h3 = lrelu(tf.nn.conv2d_transpose(h2,w3,
                                   output_shape=[batch_size,h3_s,h3_s,h3_c],
                                   strides=[1,2,2,1]))
 

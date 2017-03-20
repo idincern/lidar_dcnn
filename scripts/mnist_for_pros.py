@@ -4,31 +4,6 @@ mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 import tensorflow as tf
 sess = tf.InteractiveSession()
 
-x = tf.placeholder(tf.float32, shape=[None, 784])
-y_ = tf.placeholder(tf.float32, shape=[None, 10])
-
-W = tf.Variable(tf.zeros([784,10]))
-b = tf.Variable(tf.zeros([10]))
-
-sess.run(tf.global_variables_initializer())
-
-y = tf.matmul(x,W) + b
-
-cross_entropy = tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y))
-
-train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
-
-for _ in range(1000):
-    batch = mnist.train.next_batch(100)
-    train_step.run(feed_dict={x: batch[0], y_: batch[1]})
-
-correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
-
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-print(accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
-
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.1)
     return tf.Variable(initial)
@@ -44,40 +19,99 @@ def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                           strides=[1, 2, 2, 1], padding='SAME')
 
-W_conv1 = weight_variable([5, 5, 1, 32])
-b_conv1 = bias_variable([32])
+def deconv2d(input_, output_shape,
+       k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02,
+       name="deconv2d", with_w=False):
+  with tf.variable_scope(name):
+    # filter : [height, width, output_channels, in_channels]
+    w = tf.get_variable('w', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
+              initializer=tf.random_normal_initializer(stddev=stddev))
 
+    try:
+      deconv = tf.nn.conv2d_transpose(input_, w, output_shape=output_shape,
+                strides=[1, d_h, d_w, 1])
+
+    # Support for verisons of TensorFlow before 0.7.0
+    except AttributeError:
+      deconv = tf.nn.deconv2d(input_, w, output_shape=output_shape,
+                strides=[1, d_h, d_w, 1])
+
+    biases = tf.get_variable('biases', [output_shape[-1]], initializer=tf.constant_initializer(0.0))
+    deconv = tf.reshape(tf.nn.bias_add(deconv, biases), deconv.get_shape())
+
+    if with_w:
+      return deconv, w, biases
+    else:
+      return deconv
+
+def lrelu(x, leak=0.2, name="lrelu"):
+  return tf.maximum(x, leak*x)
+
+def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=False):
+  shape = input_.get_shape().as_list()
+
+  with tf.variable_scope(scope or "Linear"):
+    matrix = tf.get_variable("Matrix", [shape[1], output_size], tf.float32,
+                 tf.random_normal_initializer(stddev=stddev))
+    bias = tf.get_variable("bias", [output_size],
+      initializer=tf.constant_initializer(bias_start))
+    if with_w:
+      return tf.matmul(input_, matrix) + bias, matrix, bias
+    else:
+      return tf.matmul(input_, matrix) + bias
+
+# Size of each batch
+batch_size = 64
+# feature map heigh and width (i.e. size)
+h0_s = 4
+h1_s = 7
+h2_s = 14
+h3_s = 28
+# channels (number of feature maps)
+h0_c = 512
+h1_c = 256
+h2_c = 128
+h3_c = 1
+
+# Image dimensions (height, width, channels)
+image_dims = [28, 28, 1]
+# Create a placeholder for the real images
+inputs = tf.placeholder(tf.float32, [batch_size] + image_dims,
+                        name='real_images')
+
+# Create a placeholder for the random input to the generator
+z = tf.placeholder(tf.float32, [batch_size, 100], name='z')
+# project
+z_, h0_w, h0_b = linear(z,h0_c*h0_s*h0_s, 'h0', with_w=True)
+# reshape
+h0 = tf.nn.relu(tf.reshape(z_, [-1, h0_s, h0_s, h0_c]))
+
+# conv transpose 1
+w1 = weight_variable([5,5,h0_c,h1_c])
+h1 = lrelu(tf.nn.conv2d_transpose(h0,w1,
+                                  output_shape=[batch_size,h1_s,h1_s,h1_c],
+                                  strides=[1,2,2,1]))
+# conv transpose 2
+w2 = weight_variable([5,5,h1_c,h2_c])
+h2 = lrelu(tf.nn.conv2d_transpose(h1,w2,
+                                  output_shape=[batch_size,h2_s,h2_s,h2_c],
+                                  strides=[1,2,2,1]))
+# conv transpose 3
+w3 = weight_variable([5,5,h2_c,h3_c])
+h1 = lrelu(tf.nn.conv2d_transpose(h2,w3,
+                                  output_shape=[batch_size,h3_s,h3_s,h3_c],
+                                  strides=[1,2,2,1]))
+
+with tf.variable_scope('discriminator'):
+    # make convolutions and end in linear with 1 output.
+
+with tf.variable_scope('discriminator') as scope:
+    scope.reuse_variables()
+
+# Create a placeholder for the real images
+x = tf.placeholder(tf.float32, shape=[None, 784])
 x_image = tf.reshape(x, [-1, 28, 28, 1])
 
-h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2(h_conv1)
-
-W_conv2 = weight_variable([5, 5, 32, 64])
-b_conv2 = bias_variable([64])
-
-h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = max_pool_2x2(h_conv2)
-
-W_fc1 = weight_variable([7 * 7 * 64, 1024])
-b_fc1 = bias_variable([1024])
-
-h_pool2_flat = tf.reshape(h_pool2, [-1, 7*7*64])
-h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
-
-keep_prob = tf.placeholder(tf.float32)
-h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
-
-W_fc2 = weight_variable([1024, 10])
-b_fc2 = bias_variable([10])
-
-y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
-
-cross_entropy = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
-train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-sess.run(tf.global_variables_initializer())
 
 for i in range(20000):
     batch = mnist.train.next_batch(50)

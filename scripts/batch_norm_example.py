@@ -12,9 +12,6 @@ def bias_variable(shape):
     initial = tf.constant(0.1, shape=shape)
     return tf.Variable(initial)
 
-def conv2d(x,W):
-    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
-
 def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                           strides=[1, 2, 2, 1], padding='SAME')
@@ -92,15 +89,6 @@ def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=
 # Size of each batch
 batch_size = 64
 
-# Image dimensions (height, width, channels)
-image_dims = [28, 28, 1]
-# Create a placeholder for the real images
-inputs = tf.placeholder(tf.float32, [batch_size] + image_dims,
-                        name='real_images')
-
-# Create a placeholder for the random input to the generator
-z = tf.placeholder(tf.float32, [batch_size, 100], name='z')
-
 def generator(z):
     # feature map heigh and width (i.e. size)
     h0_s = 4
@@ -134,8 +122,6 @@ def generator(z):
                                           strides=[1,2,2,1])) #h3
         return tf.nn.tanh(h3)
 
-G = generator(z)
-
 def discriminator(image, reuse=False):
     # channels (number of feature maps) for discriminator
     h0_c = 128
@@ -150,9 +136,23 @@ def discriminator(image, reuse=False):
         h3 = linear(tf.reshape(h2, [batch_size, -1]), 1, 'd_h3_lin')
         return tf.nn.sigmoid(h3), h3
 
+# Image dimensions (height, width, channels)
+image_dims = [28, 28, 1]
+# Create a placeholder for the real images
+inputs = tf.placeholder(tf.float32, [batch_size] + image_dims,
+                        name='real_images')
+
+# Create a placeholder for the random input to the generator
+z = tf.placeholder(tf.float32, [batch_size, 100], name='z')
+
+# Create generator op
+G = generator(z)
+# And create discriminator ops that include real images...
 D, D_logits = discriminator(inputs)
+# ... and fake (generated) images. reuse=True reuses variables.
 D_, D_logits_ = discriminator(G, reuse=True)
 
+# Define loss operations
 d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
     labels=tf.ones_like(D), logits=D_logits))
 d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(

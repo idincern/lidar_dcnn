@@ -101,25 +101,26 @@ def generator(z):
     h2_c = 128
     h3_c = 1
     with tf.variable_scope('generator'):
+        # Create batch norm objects, used below
+        g_bn0 = batch_norm(name='g_bn0')
+        g_bn1 = batch_norm(name='g_bn1')
+        g_bn2 = batch_norm(name='g_bn2')
         # project
         z_, h0_w, h0_b = linear(z,h0_c*h0_s*h0_s, 'g_h0_lin', with_w=True)
         # reshape
-        h0 = tf.nn.relu(tf.reshape(z_, [-1, h0_s, h0_s, h0_c]))
+        h0 = tf.nn.relu(g_bn0(tf.reshape(z_, [-1, h0_s, h0_s, h0_c])))
         # conv transpose 1
         w1 = weight_variable([5,5,h1_c,h0_c])
-        h1 = lrelu(tf.nn.conv2d_transpose(h0,w1,
-                                          output_shape=[batch_size,h1_s,h1_s,h1_c],
-                                          strides=[1,2,2,1])) #h1
+        h1 = lrelu(g_bn1(tf.nn.conv2d_transpose(
+            h0,w1,output_shape=[batch_size,h1_s,h1_s,h1_c],strides=[1,2,2,1])))
         # conv transpose 2
         w2 = weight_variable([5,5,h2_c,h1_c])
-        h2 = lrelu(tf.nn.conv2d_transpose(h1,w2,
-                                          output_shape=[batch_size,h2_s,h2_s,h2_c],
-                                          strides=[1,2,2,1])) #h2
-        # conv transpose 3
+        h2 = lrelu(g_bn2(tf.nn.conv2d_transpose(
+            h1,w2,output_shape=[batch_size,h2_s,h2_s,h2_c],strides=[1,2,2,1])))
+        # conv transpose 3 (no batch norm on last layer)
         w3 = weight_variable([5,5,h3_c,h2_c])
-        h3 = lrelu(tf.nn.conv2d_transpose(h2,w3,
-                                          output_shape=[batch_size,h3_s,h3_s,h3_c],
-                                          strides=[1,2,2,1])) #h3
+        h3 = lrelu(tf.nn.conv2d_transpose(
+            h2,w3,output_shape=[batch_size,h3_s,h3_s,h3_c],strides=[1,2,2,1]))
         return tf.nn.tanh(h3)
 
 def discriminator(image, reuse=False):

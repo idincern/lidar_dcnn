@@ -131,9 +131,13 @@ def discriminator(image, reuse=False):
     with tf.variable_scope("discriminator") as scope:
         if reuse:
             scope.reuse_variables()
+        # Create batch norm objects, used below
+        d_bn1 = batch_norm(name='d_bn1')
+        d_bn2 = batch_norm(name='d_bn2')
+        d_bn3 = batch_norm(name='d_bn3')
         h0 = lrelu(conv2d(image, h0_c, name='d_h0_conv'))
-        h1 = lrelu(conv2d(h0, h1_c, name='d_h1_conv'))
-        h2 = lrelu(conv2d(h1, h2_c, name='d_h2_conv'))
+        h1 = lrelu(d_bn1(conv2d(h0, h1_c, name='d_h1_conv')))
+        h2 = lrelu(d_bn2(conv2d(h1, h2_c, name='d_h2_conv')))
         h3 = linear(tf.reshape(h2, [batch_size, -1]), 1, 'd_h3_lin')
         return tf.nn.sigmoid(h3), h3
 

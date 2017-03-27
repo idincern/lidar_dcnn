@@ -181,6 +181,12 @@ d_optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
 g_optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
                   .minimize(g_loss, var_list=g_vars)
 
+try:
+    tf.global_variables_initializer().run()
+except:
+    tf.initialize_all_variables().run()
+
+
 """
 # Create a placeholder for the real images
 x = tf.placeholder(tf.float32, shape=[None, 784])

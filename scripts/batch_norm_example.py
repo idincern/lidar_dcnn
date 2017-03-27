@@ -110,18 +110,18 @@ def generator(z):
         # reshape
         h0 = tf.nn.relu(g_bn0(tf.reshape(z_, [-1, h0_s, h0_s, h0_c])))
         # conv transpose 1
-        w1 = weight_variable([5,5,h1_c,h0_c])
-        h1 = lrelu(g_bn1(tf.nn.conv2d_transpose(
-            h0,w1,output_shape=[batch_size,h1_s,h1_s,h1_c],strides=[1,2,2,1])))
+        h1_, h1_w, h1_b = deconv2d(h0, [batch_size,h1_s,h1_s,h1_c],
+                                   name='g_h1',with_w=True)
+        h1 = lrelu(g_bn1(h1_))
         # conv transpose 2
-        w2 = weight_variable([5,5,h2_c,h1_c])
-        h2 = lrelu(g_bn2(tf.nn.conv2d_transpose(
-            h1,w2,output_shape=[batch_size,h2_s,h2_s,h2_c],strides=[1,2,2,1])))
+        h2_, h2_w, h2_b = deconv2d(h1, [batch_size,h2_s,h2_s,h2_c],
+                                   name='g_h2',with_w=True)
+        h2 = lrelu(g_bn2(h2_))
         # conv transpose 3 (no batch norm on last layer)
-        w3 = weight_variable([5,5,h3_c,h2_c])
-        h3 = lrelu(tf.nn.conv2d_transpose(
-            h2,w3,output_shape=[batch_size,h3_s,h3_s,h3_c],strides=[1,2,2,1]))
-        return tf.nn.tanh(h3)
+        h3_, h3_w, h3_b = deconv2d(h2, [batch_size,h3_s,h3_s,h3_c],
+                                   name='g_h3',with_w=True)
+        h3 = tf.nn.tanh(h3_)
+        return h3
 
 def discriminator(image, reuse=False):
     # channels (number of feature maps) for discriminator

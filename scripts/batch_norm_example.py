@@ -1,7 +1,9 @@
+import tensorflow as tf
+import numpy as np
+
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 
-import tensorflow as tf
 sess = tf.InteractiveSession()
 
 def weight_variable(shape):
@@ -121,9 +123,11 @@ def generator(z):
         h3_, h3_w, h3_b = deconv2d(h2, [batch_size,h3_s,h3_s,h3_c],
                                    name='g_h3',with_w=True)
         h3 = tf.nn.tanh(h3_)
+        # h3 has dimensions (batch_size, h3_s, h3_s, h3_c)
         return h3
 
 def discriminator(image, reuse=False):
+    # image has dimensions (batch_size, 28, 28, 1)
     # channels (number of feature maps) for discriminator
     h0_c = 128
     h1_c = 256
@@ -192,15 +196,17 @@ except:
 x = tf.placeholder(tf.float32, shape=[None, 784])
 x_image = tf.reshape(x, [-1, 28, 28, 1])
 
-
-for i in range(20000):
-    batch = mnist.train.next_batch(50)
-    if i%100 == 0:
-        train_accuracy = accuracy.eval(feed_dict={
-            x:batch[0], y_:batch[1], keep_prob:1.0})
-        print("step %d, training accuracy %g"%(i, train_accuracy))
-    train_step.run(feed_dict={x:batch[0], y_:batch[1], keep_prob:0.5})
-
-print("test accuracy %g"%accuracy.eval(feed_dict={
-    x:mnist.test.images, y_:mnist.test.labels, keep_prob:1.0}))
 """
+for i in range(20000):
+    if np.mod(i,100)==1:
+        print(i)
+    # Get batch_size images (as 784x1 vectors)
+    batch = mnist.train.next_batch(batch_size)
+    # Resize them to 28x28x1 images
+    batch_images = np.reshape(batch[0],[-1,28,28,1])
+    # get a batch of random z vectors
+    batch_z = np.random.uniform(-1, 1, [batch_size, 100]).astype(np.float32)
+    # Update D network
+    sess.run(d_optim, feed_dict={inputs: batch_images,z:batch_z})
+    sess.run(g_optim, feed_dict={z: batch_z})
+    sess.run(g_optim, feed_dict={z: batch_z})

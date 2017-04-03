@@ -1,3 +1,13 @@
+* lidar GAN
+** Utility to convert rosbags into numpy binary files
+   + Should header accompany each scan (like in rosbag)?
+   + Or should there be a header and then an array of scans?
+** 1D GAN
+   + convolution transpose
+   + batch norm
+** Project high level features backwards onto original scan
+   + check out Zeiler and Fergus 2014 EECV for a start
+
 * EECS 600 Project
 ** DONE Create Data
    CLOSED: [2016-12-09 Fri 16:43]

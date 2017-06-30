@@ -34,7 +34,12 @@ Read:
 Feature-based laser scan matching and its application for indoor mapping
 A new feature-based method for robust and efficient rigid-body registration of overlapping point clouds
 Point-wise saliency detection on 3D point clouds via covariance descriptors
+Real-time loop closure in 2D LIDAR SLAM
 
+Object recognition from local scale-invariant features
+A scale-invariant local descriptor for event recognition in 1d sensor signals
+SURF: Speeded Up Robust Features
+ORB: An efficient alternative to SIFT or SURF
 *** [07/02/2017] Su
 **** TODO Finish Dissertation Proposal
 

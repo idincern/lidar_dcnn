@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 * Graduation Timeline
 ** Timeline
 *** [06/14/2017] W
@@ -205,6 +206,17 @@ ORB: An efficient alternative to SIFT or SURF
 *** TODO Upload GNSS+ paper to AMP (https://www.ion.org/abstracts/index.cfm)
     DEADLINE: <2017-09-18 Mon>
 
+=======
+* lidar GAN
+** Utility to convert rosbags into numpy binary files
+   + Should header accompany each scan (like in rosbag)?
+   + Or should there be a header and then an array of scans?
+** 1D GAN
+   + convolution transpose
+   + batch norm
+** Project high level features backwards onto original scan
+   + check out Zeiler and Fergus 2014 EECV for a start
+>>>>>>> d0f2fc6cea32cbe28b224fef9611c1f0989f0305
 
 * EECS 600 Project
 ** DONE Create Data

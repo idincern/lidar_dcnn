@@ -29,18 +29,72 @@ Research SLAM.
 **** TODO Read papers about visualizing upper layers
 *** [06/29/2017] Th
 *** [06/30/2017] F
-TODAY!!!!
 *** [07/01/2017] S
 Read:
-Feature-based laser scan matching and its application for indoor mapping
-A new feature-based method for robust and efficient rigid-body registration of overlapping point clouds
-Point-wise saliency detection on 3D point clouds via covariance descriptors
-Real-time loop closure in 2D LIDAR SLAM
+Simultaneous Localization And Mapping: Present, Future, and the Robust-Perception Age
 
+*Feature-based laser scan matching and its application for indoor mapping
+*Keypoint design and evaluation for place recognition in 2D lidar maps
+A general purpose feature extractor for Light Detection and Ranging data
+A new feature-based method for robust and efficient rigid-body registration of overlapping point clouds
+CRF-Matching : Conditional Random Fields for Feature-Based Scan Matching
+FLIRT - Interest regions for 2D range data
+Point-wise saliency detection on 3D point clouds via covariance descriptors
+
+-ICP
+A Method for Registration of 3-D Shapes
+Robot pose estimation in unknown environments by matching 2D range scans
+
+-Nearest Neighbor
+
+-Bag of Words
+Bags of Binary Words for Fast Place Recognition in Image Sequences
+
+-Features
+--2D
 Object recognition from local scale-invariant features
 A scale-invariant local descriptor for event recognition in 1d sensor signals
 SURF: Speeded Up Robust Features
 ORB: An efficient alternative to SIFT or SURF
+--3D
+A comparison of line extraction algorithms using 2D range data for indoor mobile robotics
+
+-Loop Closure
+Real-time loop closure in 2D LIDAR SLAM
+
+-Semantic Mapping
+Cognitive maps for mobile robots-an object based approach
+Bayesian space conceptualization and place classification for semantic maps in mobile robotics
+Towards semantic maps for mobile robots
+Robot task planning using semantic maps
+Conceptual spatial representations for indoor mobile robots
+
+-Deep Learning
+Representation learning: A review and new perspectives
+
+-Projecting features to input space
+*Visualizing and Understanding Convolutional Networks
+Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps
+Do Convnets Learn Correspondence?
+Visualizing higher-layer features of a deep network
+Adaptive Deconvolutional Networks for Mid and High Level Feature Learning
+Descriptor Matching with Convolutional Neural Networks: a Comparison to SIFT
+Discriminative Unsupervised Feature Learning with Exemplar Convolutional Neural Networks.
+Fully Convolutional Networks for Semantic Segmentation
+
+- CNNs with SLAM
+*Convolutional Neural Network-based Place Recognition
+NetVLAD: CNN architecture for weakly supervised place recognition
+Loop closure detection for visual SLAM systems using deep neural networks
+*Convolutional Neural Network-Based Image Representation for Visual Loop Closure Detection
+Object Detection for Semantic SLAM using Convolution Neural Networks
+Enhancing Place Recognition Using Joint Intensity - Depth Analysis and Synthetic Data
+Matching-range-constrained real-time loop closure detection with CNNs features
+Loop closure detection for visual SLAM using PCANet features
+Towards Cognitive Exploration through Deep Reinforcement Learning for Mobile Robots
+Mobile robots exploration through cnn-based reinforcement learning
+Visual Place Recognition: A Survey
+
 *** [07/02/2017] Su
 **** TODO Finish Dissertation Proposal
 
@@ -49,6 +103,7 @@ ORB: An efficient alternative to SIFT or SURF
 *** [07/05/2017] W
 *** [07/06/2017] Th
 *** [07/07/2017] F
+TODAY!!
 *** [07/08/2017] S
 *** [07/09/2017] Su
 **** TODO Collect data for training GAN
@@ -206,7 +261,6 @@ ORB: An efficient alternative to SIFT or SURF
 *** TODO Upload GNSS+ paper to AMP (https://www.ion.org/abstracts/index.cfm)
     DEADLINE: <2017-09-18 Mon>
 
-=======
 * lidar GAN
 ** Utility to convert rosbags into numpy binary files
    + Should header accompany each scan (like in rosbag)?
@@ -216,7 +270,6 @@ ORB: An efficient alternative to SIFT or SURF
    + batch norm
 ** Project high level features backwards onto original scan
    + check out Zeiler and Fergus 2014 EECV for a start
->>>>>>> d0f2fc6cea32cbe28b224fef9611c1f0989f0305
 
 * EECS 600 Project
 ** DONE Create Data
